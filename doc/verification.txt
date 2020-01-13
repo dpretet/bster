@@ -1,0 +1,18 @@
+# Array of values
+
+A user wants to create an array of values, for instance 16 bits wide integer. He wants to:
+
+- create the array
+- write values into it
+- read values
+- delete the array
+
+To test with a processor, and a simple C array. 
+Require a driver and its API.
+
+# Data storage
+
+A user wants to create a sort of file system, sector of data. He streams his sectors information and the payload. He wants to obtain the performance. 
+
+To test with a processor, by creating a basic file system. 
+Require a driver and its API

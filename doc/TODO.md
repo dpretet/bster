@@ -1,0 +1,4 @@
+- Make the AXI4 BRAM alive and populate few tests
+- Implement capabilty to insert one or more tokens into the tree
+- Implement capabilty to search one or more token intot the tree
+- Implement memory defragmenter and queue to manage dead addresses
