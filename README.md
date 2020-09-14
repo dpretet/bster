@@ -15,6 +15,16 @@ designed with SystemVerilog.
 - the [interface document](doc/interface.md) provides information about the interface of the IP
 and how to use it
 
+# External dependencies
+
+BSTer IP testbench uses the following IP core:
+
+- https://github.com/alexforencich/verilog-axi/blob/master/rtl/axi_ram.v
+
+BSTer simulation relies for simulation on:
+
+- [Icarus Verilog](http://iverilog.icarus.com)
+- [SVUT](https://github.com/dpretet/svut)
 
 ## License
 
