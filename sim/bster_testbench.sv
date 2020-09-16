@@ -286,7 +286,11 @@ module bster_testbench();
 
     `UNIT_TEST("IDLE CHECK")
 
-        `INFO("Check BSTer core is properly IDLE after reset");
+        `INFO("Check BSTer core is properly IDLE during and after reset");
+
+        aresetn = 0;
+
+        `MSG("Check IDLE under reset");
 
         `ASSERT(awready == 1'b0);
         `ASSERT(wready == 1'b0);
@@ -321,6 +325,40 @@ module bster_testbench();
         `ASSERT(ram_axi_arvalid == 1'b0);
         `ASSERT(ram_axi_rready == 1'b0);
 
+        #10;
+        aresetn = 0;
+        #10;
+
+        `MSG("Check IDLE after reset release");
+        `ASSERT(bvalid == 1'b0);
+        `ASSERT(bresp == 2'b0);
+        `ASSERT(rvalid == 1'b0);
+        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
+        `ASSERT(rresp == 1'b0);
+        `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
+        `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
+        `ASSERT(ram_axi_awlen == 8'b0);
+        `ASSERT(ram_axi_awsize == 3'b0);
+        `ASSERT(ram_axi_awburst == 2'b0);
+        `ASSERT(ram_axi_awlock == 1'b0);
+        `ASSERT(ram_axi_awcache == 4'b0);
+        `ASSERT(ram_axi_awprot == 3'b0);
+        `ASSERT(ram_axi_awvalid == 1'b0);
+        `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
+        `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
+        `ASSERT(ram_axi_wlast == 1'b0);
+        `ASSERT(ram_axi_wvalid == 1'b0);
+        `ASSERT(ram_axi_bready == 1'b0);
+        `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}});
+        `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
+        `ASSERT(ram_axi_arlen == 8'b0);
+        `ASSERT(ram_axi_arsize == 3'b0);
+        `ASSERT(ram_axi_arburst == 2'b0);
+        `ASSERT(ram_axi_arlock == 1'b0);
+        `ASSERT(ram_axi_arcache == 4'b0);
+        `ASSERT(ram_axi_arprot == 3'b0);
+        `ASSERT(ram_axi_arvalid == 1'b0);
+        `ASSERT(ram_axi_rready == 1'b0);
     `UNIT_TEST_END
 
     `TEST_SUITE_END

@@ -24,16 +24,37 @@
 
 /// Define colors for $display
 
-`define BLUE    "\033[0;34m"
-`define GREEN   "\033[0;32m"
-`define ORANGE  "\033[1;33m"
-`define PINK    "\033[1;35m"
-`define RED     "\033[1;31m"
-`define NC      "\033[0m"
+/// 1 set bold
+/// 2 set half-bright (simulated with color on a color display)
+/// 4 set underscore (simulated with color on a color display)
+/// 5 set blink
+/// 7 set reverse video
 
+`define BLACK   "\033[1;30m"
+`define RED     "\033[1;31m"
+`define GREEN   "\033[1;32m"
+`define BROWN   "\033[1;33m"
+`define BLUE    "\033[1;34m"
+`define PINK    "\033[1;35m"
+`define CYAN    "\033[1;36m"
+`define WHITE   "\033[1;37m"
+
+`define BG_BLACK   "\033[1;40m"
+`define BG_RED     "\033[1;41m"
+`define BG_GREEN   "\033[1;42m"
+`define BG_BROWN   "\033[1;43m"
+`define BG_BLUE    "\033[1;44m"
+`define BG_PINK    "\033[1;45m"
+`define BG_CYAN    "\033[1;46m"
+`define BG_WHITE   "\033[1;47m"
+
+`define NC "\033[0m"
 
 /// Follows a set of ready to use function to print status
 /// and information with an appropriate color.
+
+`define MSG(msg) \
+    $display("\033[0;37m%s (@ %0t)\033[0m", msg, $time)
 
 `define INFO(msg) \
     $display("\033[0;34mINFO: %s (@ %0t)\033[0m", msg, $time)
@@ -88,7 +109,7 @@ function string create_msg(input string assertion, message);
 endfunction
 
 
-/// This check will fails if expression is not = 0
+/// This check fails if expression is not = 0
 `define FAIL_IF(exp, message="") \
     svut_status = 0; \
     svut_msg = create_msg("FAIL_IF", message); \
@@ -97,7 +118,7 @@ endfunction
         svut_status = 1; \
     end
 
-/// This check will fails if expression is not > 0
+/// This check fails if expression is not > 0
 `define FAIL_IF_NOT(exp, message="") \
     svut_status = 0; \
     svut_msg = create_msg("FAIL_IF_NOT", message); \
@@ -106,7 +127,7 @@ endfunction
         svut_status = 1; \
     end
 
-/// This check will fails if both input are equal
+/// This check fails if both input are equal
 `define FAIL_IF_EQUAL(a,b, message="") \
     svut_status = 0; \
     svut_msg = create_msg("FAIL_IF_EQUAL", message); \
@@ -115,7 +136,7 @@ endfunction
         svut_status = 1; \
     end
 
-/// This check will fails if both input are not equal
+/// This check fails if both input are not equal
 `define FAIL_IF_NOT_EQUAL(a,b, message="") \
     svut_status = 0; \
     svut_msg = create_msg("FAIL_IF_NOT_EQUAL", message); \
@@ -124,7 +145,7 @@ endfunction
         svut_status = 1; \
     end
 
-/// This check will fails if expression is not = 0
+/// This check fails if expression is not = 0
 `define ASSERT(exp, message="") \
     svut_status = 0; \
     svut_msg = create_msg("ASSERT", message); \

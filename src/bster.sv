@@ -98,11 +98,11 @@ module bster
         output wire                        ram_axi_rready
     );
 
-    assign awready = 1'b0;
-    assign wready = 1'b0;
+    assign awready = aresetn;
+    assign wready = aresetn;
     assign bvalid = 1'b0;
     assign bresp = 2'b0;
-    assign arready = 1'b0;
+    assign arready = aresetn;
     assign rvalid = 1'b0;
     assign rdata = {CSR_DATA_WIDTH{1'b0}};
     assign rresp = 1'b0;
