@@ -1,0 +1,7 @@
+language: bash
+dist: focal
+before_install:
+  - sudo apt-get install iverilog
+  - sudo apt-get install yosys
+script:
+    - ./flow.sh sim
