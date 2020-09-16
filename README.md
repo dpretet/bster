@@ -4,6 +4,7 @@
   <img width="325" height="215" src="./doc/icon.png">
 </p>
 
+[![Build Status](https://travis-ci.org/dpretet/bster.svg?branch=master)](https://travis-ci.org/dpretet/bster)
 
 ## Introduction
 
