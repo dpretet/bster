@@ -4,6 +4,7 @@
 
 /// Mandatory file to be able to launch SVUT flow
 `include "svut_h.sv"
+`include "bster_h.sv"
 
 `timescale 1 ns / 100 ps
 
@@ -92,6 +93,7 @@ module bster_testbench();
     wire                        ram_axi_rready;
 
     // Tasks to inject commands and sink completions/status
+    `include "amba_tasks.sv"
     `include "bster_tasks.sv"
 
     // BSTer core
@@ -227,7 +229,7 @@ module bster_testbench();
     initial aclk = 0;
     always #2 aclk <= ~aclk;
 
-    initial begin
+    initial begin : INIT_BLOCK
         $dumpfile("bster_testbench.vcd");
         $dumpvars(0, bster_testbench);
     end
@@ -258,6 +260,7 @@ module bster_testbench();
     endtask
 
     task teardown(msg="");
+        #20;
     begin
         /// teardown() runs when a test ends
     end
@@ -286,7 +289,7 @@ module bster_testbench();
 
     `UNIT_TEST("IDLE CHECK")
 
-        `INFO("Check BSTer core is properly IDLE during and after reset");
+        `MSG("Check BSTer core is properly IDLE during and after reset");
 
         aresetn = 0;
 
@@ -300,6 +303,7 @@ module bster_testbench();
         `ASSERT(rvalid == 1'b0);
         `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
         `ASSERT(rresp == 1'b0);
+        `ASSERT(cmd_tready == 1'b0);
         `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
         `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
         `ASSERT(ram_axi_awlen == 8'b0);
@@ -326,15 +330,20 @@ module bster_testbench();
         `ASSERT(ram_axi_rready == 1'b0);
 
         #10;
-        aresetn = 0;
+        aresetn = 1;
         #10;
 
         `MSG("Check IDLE after reset release");
+
+        `ASSERT(awready == 1'b1);
+        `ASSERT(wready == 1'b1);
         `ASSERT(bvalid == 1'b0);
         `ASSERT(bresp == 2'b0);
+        `ASSERT(arready == 1'b1);
         `ASSERT(rvalid == 1'b0);
         `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
         `ASSERT(rresp == 1'b0);
+        `ASSERT(cmd_tready == 1'b1);
         `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
         `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
         `ASSERT(ram_axi_awlen == 8'b0);
@@ -359,6 +368,14 @@ module bster_testbench();
         `ASSERT(ram_axi_arprot == 3'b0);
         `ASSERT(ram_axi_arvalid == 1'b0);
         `ASSERT(ram_axi_rready == 1'b0);
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Try to issue some commands")
+
+        `MSG("Give a try to issue an insert command");
+        command(`INSERT_TOKEN, 0, 0);
+
     `UNIT_TEST_END
 
     `TEST_SUITE_END

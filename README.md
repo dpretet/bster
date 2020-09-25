@@ -8,13 +8,14 @@
 
 ## Introduction
 
-This repository owns a binary search tree algorithm implemented as an IP for FPGA and ASIC. It is
-designed with SystemVerilog.
+This repository owns a binary search tree algorithm implemented as an IP for
+FPGA and ASIC. It is designed with SystemVerilog.
 
 - the [functional specification](doc/functional_spec.md)
-- the [info document](doc/info.md) provides basic information about this type of algorithm
-- the [interface document](doc/interface.md) provides information about the interface of the IP
-and how to use it
+- the [info document](doc/info.md) provides basic information about this type 
+  of algorithm
+- the [interface document](doc/interface.md) provides information about the 
+  interface of the IP and how to use it
 
 # External dependencies
 

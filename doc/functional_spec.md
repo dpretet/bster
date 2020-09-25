@@ -74,19 +74,12 @@ TODO: Add description of AXI4S interface formatting for each command.
 
 - Insert token
     - Opcode = 0x20
-    - Insert a new token in the tree based on binary tree property.
+    - Insert a new token, optionally a data associated
     - Return 0 if operation was successfull, 1 if failed.
 
-- Insert payload in token
+- Insert token's data
     - Opcode = 0x21
-    - Insert data in the node address specified.
-    - Node needs to exist.
-    - Return 0 if operation was successfull, 1 if failed.
-
-- Replace data in token
-    - Opcode = 0x43
-    - First rely on `delete`.
-    - Then rely on `insert` payload.
+    - Add or replace a data into a token
     - Return 0 if tree conformal, 1 if not.
 
 
@@ -103,45 +96,49 @@ TODO: Add description of AXI4S interface formatting for each command.
     - Delete the data block content linked to a node.
     - Return 0 if operation was successfull, 1 if failed.
 
-- Delete children below token
+- Delete children of a token
     - Opcode = 0x32
-    - Delete all children below a node, usefull to cut a tree branch
+    - Delete children of a node
     - Return 0 if operation was successfull, 1 if failed.
 
+- Delete left child of a token
+    - Opcode = 0x33
+    - Delete left child and its children
+    - Return 0 if operation was successfull, 1 if failed.
+
+- Delete right child of a token
+    - Opcode = 0x34
+    - Delete right child and its children
+    - Return 0 if operation was successfull, 1 if failed.
 
 ### Utility
 
-- (Verify tree conformance) (TBD)
+- Create tree
     - Opcode = 0x40
+    - Read genesis address and create a root node to build a tree
+    - Return status = 0 if successful, 1 if failed to access memory.
+
+- (Verify tree conformance) (TBD)
+    - Opcode = 0x41
     - Parse the tree and ensure it respects the binary tree paradigm.
     - Return 0 if tree conformal, 1 if not.
 
 - (Reorder tree) (TBD)
-    - Opcode = 0x41
+    - Opcode = 0x42
     - Reoder a non-conformal tree.
     - Return 0 if tree conformal, 1 if not.
 
-- (Defragment data map) (TBD)
-    - Opcode = 0x42
-    - Organize the data map into the smallest number of contiguous regions (fragments).
-    - Return 0 if finished, 1 if experienced an issue.
-
 - Get size of tree
-    - Opcode = 0x44
+    - Opcode = 0x43
     - Parse the tree and count the number of nodes.
     - If token specified, only discover its size, not the tree size.
     - Return the number of nodes.
 
 - Get depth of tree
-    - Opcode = 0x45
+    - Opcode = 0x44
     - Parse the tree and count the number of layers.
     - If token specified, only discover its depth, not the tree depth.
     - Return the number of layer.
-
-- Create tree
-    - Opcode = 0x46
-    - Read genesis address and create a root node to build a tree
-    - Return status = 0 if successful, 1 if failed to access memory.
 
 
 ## Memory Structure
@@ -158,7 +155,6 @@ TODO: Add description of AXI4S interface formatting for each command.
 ### Node Structure
 
 - Token (`DWIDTH` bits)
-- Payload (`DWIDTH` bits) (**optional**)
 - Parent node address (`AWIDTH` bits)
 - Left child address (`AWIDTH` bits)
 - Right child address (`AWIDTH` bits)
@@ -168,42 +164,44 @@ TODO: Add description of AXI4S interface formatting for each command.
     - has left child (1 bit)
     - has right child (1 bit)
     - is smallest child (1 bit)
+- Payload (`DWIDTH` bits) (**optional**)
+- Metadata (`DWIDTH` bits) (**optional**)
 - Node digest (hash of all the other fields) (`DWIDTH` bits) (**optional**)
 
 
 ### Register Map
 
-- Mailbox (`DWIDTH` bits) (**Read/Write**)
+Register map can be accessed from 32 bits wide only AXI4-lite interface.
+Address are indicated with byte oriented
+
+- Mailbox (Address 0) (`DWIDTH` bits) (**Read/Write**)
     - A register to verify AXI4-lite interface completion
     - User only, never used by the IP
 
-- Genesis’s node address (`AWIDTH` bits) (*Read/Write*)
+- Genesis’s node address (Address 4) (`AWIDTH` bits) (*Read/Write*)
     - The genesis block address
     - IP auto-restarts if updated after boot
 
-- Restart the IP (1 bit) (**Read/Write**)
+- Restart the IP (Address 8) (1 bit) (**Read/Write**)
     - Apply the restart procedure.
     - Auto set to 0 once restart is finished, remains asserted during procedure
     - All IP's interfaces remain unavailable during this operation.
 
-- Memory access error (1 bit) (**Read-only**))
+- Memory access error (Address 12 - offset 0) (1 bit) (**Read-only**))
     - Indicate a problem during a previous memory access (last over 1 ms)
 
-- Memory full (1 bit) (**Read-only**))
+- Memory full (1 bit) (Address 12 - offset 1) (**Read-only**))
     - Indicate no more memory space remains for future storage
 
-- Under operation (1 bit) (**Read-only**))
+- Under operation (1 bit) (Address 12 - offset 2) (**Read-only**))
     - IP is processing a user request
     - Return 1 if write access issued in these fields
 
-- Operation under execution (8 bits) (**Read-only**))
+- Operation under execution (8 bits) (Address 8 - offset 0) (**Read-only**))
     - Provides the opcode of the operation under execution
 
-- Under maintenance (1 bit) (**Read-only**))
+- Under maintenance (1 bit) (Address 8 - offset 8) (**Read-only**))
     - IP is unavailable, applying an internal operation
-
-- Tree conformance (1 bit) (**Read-only**))
-    - Indicates the tree respects the binary tree paradigm
 
 - Upper bits reserved (**Reserved**))
     - Reserved for future update or internal usage.

@@ -107,6 +107,8 @@ module bster
     assign rdata = {CSR_DATA_WIDTH{1'b0}};
     assign rresp = 1'b0;
 
+    assign cmd_tready = aresetn;
+
     assign ram_axi_awid = {RAM_ID_WIDTH{1'b0}};
     assign ram_axi_awaddr = {RAM_ADDR_WIDTH{1'b0}};
     assign ram_axi_awlen = 8'b0;

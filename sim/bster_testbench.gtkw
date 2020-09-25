@@ -1,0 +1,138 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Sep 23 19:55:08 2020
+[*]
+[dumpfile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.vcd"
+[dumpfile_mtime] "Wed Sep 23 19:50:26 2020"
+[dumpfile_size] 11740
+[savefile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-15.648262 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] bster_testbench.
+[sst_width] 193
+[signals_width] 141
+[sst_expanded] 1
+[sst_vpaned_height] 167
+@28
+bster_testbench.aclk
+bster_testbench.aresetn
+@c00201
+-axi4-lite
+@28
+bster_testbench.awvalid
+bster_testbench.awready
+bster_testbench.awaddr[2:0]
+bster_testbench.awprot[1:0]
+bster_testbench.wvalid
+bster_testbench.wready
+@22
+bster_testbench.wdata[31:0]
+bster_testbench.wstrb[3:0]
+@28
+bster_testbench.bvalid
+bster_testbench.bready
+bster_testbench.bresp[1:0]
+bster_testbench.araddr[2:0]
+bster_testbench.arprot[1:0]
+bster_testbench.arvalid
+bster_testbench.arready
+@22
+bster_testbench.rdata[31:0]
+@c00028
+bster_testbench.rresp[1:0]
+@28
+(0)bster_testbench.rresp[1:0]
+(1)bster_testbench.rresp[1:0]
+@1401200
+-group_end
+@28
+bster_testbench.rvalid
+bster_testbench.rready
+@1401201
+-axi4-lite
+@c00200
+-command
+@22
+bster_testbench.cmd_tdata[127:0]
+@28
+bster_testbench.cmd_tready
+bster_testbench.cmd_tvalid
+@1401200
+-command
+@c00200
+-Completion
+@22
+bster_testbench.cpl_tdata[127:0]
+@28
+bster_testbench.cpl_tvalid
+bster_testbench.cpl_tready
+@1401200
+-Completion
+@c00200
+-status
+@22
+bster_testbench.sts_tdata[7:0]
+@28
+bster_testbench.sts_tready
+bster_testbench.sts_tvalid
+@1401200
+-status
+@c00200
+-RAM
+@22
+bster_testbench.ram_axi_araddr[15:0]
+@28
+bster_testbench.ram_axi_arburst[1:0]
+@22
+bster_testbench.ram_axi_arcache[3:0]
+bster_testbench.ram_axi_arid[7:0]
+bster_testbench.ram_axi_arlen[7:0]
+@28
+bster_testbench.ram_axi_arlock
+bster_testbench.ram_axi_arprot[2:0]
+bster_testbench.ram_axi_arready
+bster_testbench.ram_axi_arsize[2:0]
+bster_testbench.ram_axi_arvalid
+@22
+bster_testbench.ram_axi_awaddr[15:0]
+@28
+bster_testbench.ram_axi_awburst[1:0]
+@22
+bster_testbench.ram_axi_awcache[3:0]
+bster_testbench.ram_axi_awid[7:0]
+bster_testbench.ram_axi_awlen[7:0]
+@28
+bster_testbench.ram_axi_awlock
+bster_testbench.ram_axi_awprot[2:0]
+bster_testbench.ram_axi_awready
+bster_testbench.ram_axi_awsize[2:0]
+bster_testbench.ram_axi_awvalid
+@22
+bster_testbench.ram_axi_bid[7:0]
+@28
+bster_testbench.ram_axi_bready
+bster_testbench.ram_axi_bresp[1:0]
+bster_testbench.ram_axi_bvalid
+@22
+bster_testbench.ram_axi_rdata[31:0]
+bster_testbench.ram_axi_rid[7:0]
+@28
+bster_testbench.ram_axi_rlast
+bster_testbench.ram_axi_rready
+bster_testbench.ram_axi_rresp[1:0]
+bster_testbench.ram_axi_rvalid
+@22
+bster_testbench.ram_axi_wdata[31:0]
+@28
+bster_testbench.ram_axi_wlast
+bster_testbench.ram_axi_wready
+@22
+bster_testbench.ram_axi_wstrb[3:0]
+@28
+bster_testbench.ram_axi_wvalid
+@1401200
+-RAM
+[pattern_trace] 1
+[pattern_trace] 0

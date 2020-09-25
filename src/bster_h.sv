@@ -1,0 +1,20 @@
+`ifndef BSTER
+`define BSTER
+
+`define SEARCH_TOKEN 8'h10
+`define SEARCH_SMALLEST_TOKEN 8'h11
+`define SEARCH_BIGGEST_TOKEN 8'h12
+`define INSERT_TOKEN 8'h20
+`define INSERT_DATA 8'h21
+`define DELETE_TOKEN 8'h30
+`define DELETE_DATA 8'h31
+`define DELETE_CHILDREN 8'h32
+`define DELETE_LEFT_CHILD 8'h33
+`define DELETE_RIGHT_CHILD 8'h34
+`define CREATE_TREE 8'h40
+`define CHECK_TREE_IS_CONFORM 8'h41
+`define REORDER_TREE 8'h42
+`define GET_TREE_SIZE 8'h43
+`define GET_TREE_DEPTH 8'h44
+
+`endif
