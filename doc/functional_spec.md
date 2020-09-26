@@ -4,15 +4,15 @@
 ## Summary
 
 - [Introduction](#Introduction)
-- [Design Consideration](#Design-Consideration)
 - [Commands](#Commands)
-- [Memory Structure](#Memory-Structure)
+- [Node Structure](#Node-Structure)
+- [Register map](#Register-Map)
 - [Command Algorithms](#Command-Algorithms)
 
 
 ## Introduction
 
-- [Binary tree](https://en.wikipedia.org/wiki/Binary_tree) and its advantages.
+- [Binary tree overview](https://en.wikipedia.org/wiki/Binary_tree) and its advantages.
 - [Usage example](https://stackoverflow.com/questions/2130416/what-are-the-applications-of-binary-trees).
     - Hash tree
     - Huffman coding
@@ -20,37 +20,61 @@
     - Merkle tree
     - Prefix tree
 
-
-## Design Consideration
+Spec:
 
 - RTL description in SystemVerilog
 - [AMBA4](https://developer.arm.com/architectures/system-architectures/amba/documentation) compliant.
 - [FPGA](https://en.wikipedia.org/wiki/Field-programmable_gate_array) agnostic.
-- Support any memory type, depth and size being AXI4 compliant. User can plug
-  its own model if necessary.
-- The IP provides 4 different interfaces:
+- Support any memory type, depth and size being AXI4 compliant. Users can plug
+  their own model if necessary.
+- The IP provides 3 interfaces:
     - 1 AXI4-lite interface to access the [register map](#Register-Map).
     - 1 AXI4-Stream slave to request [operations](#Commands) on the tree.
     - 1 AXI4-Stream master to get back command's completion.
-    - 1 AXI4-Stream master to get back command's status.
 - A node in the tree uses the `token` terminology to name an element to store.
   A token is considered as an abstract value and can represent anything:
     - It's interpreted as an **address** to locate a node.
     - Can mean address, data, id, ... the meaning depends of the
       application.
     - All operations parsing the tree rely on this field.
-
+    - A token can embbed payload
+- Support 3 basic operations: insert, delete and search
+    - search: pre-order, in-order, and post-order supported
+    - two modes: depth-first order and breadth-first order
+- Support shallow copy to create min and max heap
+    - can copy the content of the tree in another memory location
+      and reorder it to create min or max heap tree
+- Support digest computation:
+    - single node digest: node content is used to create a unique digest
+    - merkle tree like: node and its two children are used to create the digest
+      in the node
 
 ## Commands
 
-All commands requests by the user are issued on AXI4S slave interface of the
-IP. All commands' completion and status are driven on AXI4S master interfaces
-of the IP.
+All commands are issued by the user on AXI4S slave interface.
+All commands' completion and status are driven on AXI4S master interface.
 
-TODO: Add description of AXI4S interface formatting for each command.
+Command interface:
+    - MSB: the command coded with 8 bits
+    - LSB: the token value and its optional data payload
 
+The command interface must be sized to enclose the command, the token and
+the payload. If not wide enough, the IP can't work properly. For instance,
+if the token is 16 bits wide and the data 32 bits wide, the interface must be
+at least 52 bits. Token and payload width are defined with respectively
+`TOKEN_WIDTH` and `PAYLOAD_WIDTH`.
 
-### Search
+    (TOKEN_WIDTH+PAYLOAD_WIDTH+8) <= AXI4S_WIDTH
+
+Completion interface:
+    - MSB: the command status (1 bit)
+    - LSB: the payload (content depends the command issued)
+
+Both the interface use the same parameter (`AXI4S_WIDTH`) to be size.
+
+    (PAYLOAD_WIDTH+1) <= AXI4S_WIDTH
+
+### Search commands
 
 - Search token
     - Opcode = 0x10
@@ -69,8 +93,7 @@ TODO: Add description of AXI4S interface formatting for each command.
 
 - (Search over node's data) (TBD)
 
-
-### Insert
+### Insert commands
 
 - Insert token
     - Opcode = 0x20
@@ -82,8 +105,7 @@ TODO: Add description of AXI4S interface formatting for each command.
     - Add or replace a data into a token
     - Return 0 if tree conformal, 1 if not.
 
-
-### Delete
+### Delete commands
 
 - Delete token
     - Opcode = 0x30
@@ -111,7 +133,7 @@ TODO: Add description of AXI4S interface formatting for each command.
     - Delete right child and its children
     - Return 0 if operation was successfull, 1 if failed.
 
-### Utility
+### Utility commands
 
 - Create tree
     - Opcode = 0x40
@@ -123,7 +145,7 @@ TODO: Add description of AXI4S interface formatting for each command.
     - Parse the tree and ensure it respects the binary tree paradigm.
     - Return 0 if tree conformal, 1 if not.
 
-- (Reorder tree) (TBD)
+- (Shallow copy tree) (TBD)
     - Opcode = 0x42
     - Reoder a non-conformal tree.
     - Return 0 if tree conformal, 1 if not.
@@ -140,19 +162,13 @@ TODO: Add description of AXI4S interface formatting for each command.
     - If token specified, only discover its depth, not the tree depth.
     - Return the number of layer.
 
-
-## Memory Structure
-
-- Parameters to define:
-    - `ADEPTH`: The memory depth (**integer**).
-    - `AWIDTH`: The memory address width. Derived from memory depth, >= log2(depth), (**integer**).
-    - `DWIDTH`: The memory data width from 1 to 1024 bits (**integer**).
-    - `GENESIS_ADDR`: The genesis's node address (`AWIDTH` bits) (**integer**).
-    - `STORE_DATA`: If nodes store or not payload along a token. (**boolean**)
-    - `STORE_DIGEST`: Compute node digest. Disabling it speed-up the IP. (**boolean**)
+- Sort tree
+    - Opcode = 0x45
+    - Parse the tree and stream back its content, sorted from min to max value
+    - Return an array like data stream.
 
 
-### Node Structure
+## Node Structure
 
 - Token (`DWIDTH` bits)
 - Parent node address (`AWIDTH` bits)
@@ -165,68 +181,83 @@ TODO: Add description of AXI4S interface formatting for each command.
     - has right child (1 bit)
     - is smallest child (1 bit)
 - Payload (`DWIDTH` bits) (**optional**)
-- Metadata (`DWIDTH` bits) (**optional**)
 - Node digest (hash of all the other fields) (`DWIDTH` bits) (**optional**)
 
 
-### Register Map
+## Control / Status Register Map
 
 Register map can be accessed from 32 bits wide only AXI4-lite interface.
-Address are indicated with byte oriented
+Address are indicated with byte oriented notation.
 
-- Mailbox (Address 0) (`DWIDTH` bits) (**Read/Write**)
-    - A register to verify AXI4-lite interface completion
+- Mailbox (Address 32'h00 - offset 0) (32 bits) (**Read/Write**)
+    - A register to verify AXI4-lite interface responsiveness
     - User only, never used by the IP
 
-- Genesis’s node address (Address 4) (`AWIDTH` bits) (*Read/Write*)
-    - The genesis block address
-    - IP auto-restarts if updated after boot
+- Root node address (Address 32'h04 - offset 0) (`AWIDTH` bits) (**Read/Write**)
+    - The root node LSB address
+    - User needs to apply a reset procedure if updated
 
-- Restart the IP (Address 8) (1 bit) (**Read/Write**)
+- Root node address (Address 32'h08 - offset 0) (`AWIDTH` bits) (**Read/Write**)
+    - The root node MSB address
+    - If address width is smaller or equal to 32 bits, must be tied to 0
+    - User needs to apply a reset procedure if updated
+
+- Restart the IP (Address 32'h0C - offset 0) (1 bit) (**Read/Write**)
     - Apply the restart procedure.
     - Auto set to 0 once restart is finished, remains asserted during procedure
     - All IP's interfaces remain unavailable during this operation.
 
-- Memory access error (Address 12 - offset 0) (1 bit) (**Read-only**))
+- Memory access error (Address 32'h0C - offset 1) (1 bit) (**Read-only**)
     - Indicate a problem during a previous memory access (last over 1 ms)
+    - Return 1 if write access issued in these fields
 
-- Memory full (1 bit) (Address 12 - offset 1) (**Read-only**))
+- Memory full (Address 32'h0C - offset 2) (1 bit) (**Read-only**)
     - Indicate no more memory space remains for future storage
+    - Return 1 if write access issued in these fields
 
-- Under operation (1 bit) (Address 12 - offset 2) (**Read-only**))
+- Under operation (Address 32'h0C - offset 3) (1 bit) (**Read-only**)
     - IP is processing a user request
     - Return 1 if write access issued in these fields
 
-- Operation under execution (8 bits) (Address 8 - offset 0) (**Read-only**))
-    - Provides the opcode of the operation under execution
-
-- Under maintenance (1 bit) (Address 8 - offset 8) (**Read-only**))
+- Under maintenance (Address 32'h0C - offset 4) (1 bit) (**Read-only**)
     - IP is unavailable, applying an internal operation
+    - Return 1 if write access issued in these fields
+
+- Operation under execution (Address 32'h0C - offset 5) (8 bits) (**Read-only**)
+    - Provides the opcode of the operation under execution
+    - Return 1 if write access issued in these fields
 
 - Upper bits reserved (**Reserved**))
     - Reserved for future update or internal usage.
-    - Return error if access issued in these fields
+    - Return error if read/write access issued in these fields
+
 
 ## Command Algorithms
 
 ### Startup
 
-1. Write, then read an empty address to check memory access. Go in ERROR state if failling.
-2. Check genesis block format. If not conform, create a new one.
+1. Write, then read an empty address to check memory access. Go in ERROR state
+   if failling. Register 32'h0C / bit 1 will be asserted and AXI4S interfaces
+   will remain unreacheable until restart applied with correct configuration.
+2. Check root block format. If not conform, create a new one. Applicable only
+   if digest calculus is enabled with parameter).
 3. Go to IDLE state, ready to receive requests.
 
 ### Insert token
 
 1. Check memory is not full. If full return the appropriate status code.
-2. Check genesis is used, if not use its address and go to `Step 3`, else go to `Step 4`
+2. Check genesis is used, if not use its address and go to `Step 3`, else go to
+   `Step 4`
 3. If use genesis block, simply store the token and go back `Step 1`
 4. Read genesis block and compare its token's value to insert:
     - If new token is smaller, store left child address and continue to `Step 5`
     - If new token is biggest, store right child address and continue to `Step 5`
 5. Read next block address and compare its token's value to insert.
     - If block is empty or partially used, use it to store the incoming token:
-        - If new token is smaller than block's token, store it on left position. Go back to `Step1`
-        - If new token is bigger than block's token, store it on right position. Go back to `Step1`
+        - If new token is smaller than block's token, store it on left position.
+          Go back to `Step1`.
+        - If new token is bigger than block's token, store it on right position.
+          Go back to `Step1`.
     - Else if block's children can't be used because already linked in the tree:
         - If new token is smaller, store left child address and repeat `Step 5`
         - If new token is biggest, store right child address and repeat `Step 5`

@@ -2,7 +2,7 @@
 
 echo "Start BSTer test flow"
 
-svutRun -test ./bster_testbench.sv | tee log
+svutRun -test ./bster_testbench.sv | tee run.log
 ret=$?
 
 if [[ $ret != 0 ]]; then
@@ -10,10 +10,10 @@ if [[ $ret != 0 ]]; then
     exit 1
 fi
 
-ec=$(grep -c "ERROR:" log)
+ec=$(grep -c "ERROR:" run.log)
 
 if [[ $ec != 0 ]]; then
-    echo "Execution suffered $ec issues"
+    echo "Execution failed"
     exit 1
 fi
 

@@ -1,3 +1,6 @@
 [submodule "deps/verilog-axi"]
 	path = deps/verilog-axi
 	url = https://github.com/alexforencich/verilog-axi.git
+[submodule "deps/async_fifo"]
+	path = deps/async_fifo
+	url = https://github.com/dpretet/async_fifo.git

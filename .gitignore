@@ -1,4 +1,6 @@
 .DS_Store
 *.out
 *.vcd
-log
+*.log
+tags
+TODO.md

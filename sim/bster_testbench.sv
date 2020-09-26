@@ -12,18 +12,21 @@ module bster_testbench();
 
     `SVUT_SETUP
 
-    parameter CSR_ADDR_WIDTH = 3;
+    // Core parameters
+    parameter TOKEN_WIDTH = 8;
+    parameter PAYLOAD_WIDTH = 32;
+    parameter CSR_ADDR_WIDTH = 8;
     parameter CSR_DATA_WIDTH = 32;
-    parameter CMD_WIDTH = 128;
-    parameter STS_WIDTH = 8;
-    parameter RAM_DATA_WIDTH = 32;
+    parameter AXI4S_WIDTH = 128;
+    parameter RAM_DATA_WIDTH = 128;
     parameter RAM_ADDR_WIDTH = 16;
     parameter RAM_STRB_WIDTH = (RAM_DATA_WIDTH/8);
     parameter RAM_ID_WIDTH = 8;
 
+    // Clock / reset signals
     reg                         aclk;
     reg                         aresetn;
-
+    // AXI4-lite CSR signals
     reg                         awvalid;
     wire                        awready;
     reg  [  CSR_ADDR_WIDTH-1:0] awaddr;
@@ -43,19 +46,15 @@ module bster_testbench();
     reg                         rready;
     wire [  CSR_DATA_WIDTH-1:0] rdata;
     wire [               2-1:0] rresp;
-
+    // AXI4-stream command signals
     reg                         cmd_tvalid;
     wire                        cmd_tready;
-    reg  [       CMD_WIDTH-1:0] cmd_tdata;
-
+    reg  [     AXI4S_WIDTH-1:0] cmd_tdata;
+    // AXI4-stream completion signals
     wire                        cpl_tvalid;
     reg                         cpl_tready;
-    wire [       CMD_WIDTH-1:0] cpl_tdata;
-
-    wire                        sts_tvalid;
-    reg                         sts_tready;
-    wire [       STS_WIDTH-1:0] sts_tdata;
-
+    wire [     AXI4S_WIDTH-1:0] cpl_tdata;
+    // AXI4 RAM signals
     wire [    RAM_ID_WIDTH-1:0] ram_axi_awid;
     wire [  RAM_ADDR_WIDTH-1:0] ram_axi_awaddr;
     wire [                 7:0] ram_axi_awlen;
@@ -92,17 +91,41 @@ module bster_testbench();
     wire                        ram_axi_rvalid;
     wire                        ram_axi_rready;
 
+    // variables used into the testcases
+    integer token;
+
     // Tasks to inject commands and sink completions/status
-    `include "amba_tasks.sv"
     `include "bster_tasks.sv"
+
+
+    /////////////////////////////////////////////////////////////
+    // Maximum number of bytes to transfer in each data transfer,
+    // or beat, in a burst
+    /////////////////////////////////////////////////////////////
+    function [2:0] sizedec;
+        input integer width;
+        begin
+            case (width)
+                1: sizedec = 3'h0;
+                2: sizedec = 3'h1;
+                4: sizedec = 3'h2;
+                8: sizedec = 3'h3;
+                16: sizedec = 3'h4;
+                32: sizedec = 3'h5;
+                64: sizedec = 3'h6;
+                128: sizedec = 3'h7;
+            endcase
+        end
+    endfunction
 
     // BSTer core
     bster
     #(
+    TOKEN_WIDTH,
+    PAYLOAD_WIDTH,
     CSR_ADDR_WIDTH,
     CSR_DATA_WIDTH,
-    CMD_WIDTH,
-    STS_WIDTH,
+    AXI4S_WIDTH,
     RAM_DATA_WIDTH,
     RAM_ADDR_WIDTH,
     RAM_STRB_WIDTH,
@@ -137,9 +160,6 @@ module bster_testbench();
     cpl_tvalid,
     cpl_tready,
     cpl_tdata,
-    sts_tvalid,
-    sts_tready,
-    sts_tdata,
     ram_axi_awid,
     ram_axi_awaddr,
     ram_axi_awlen,
@@ -188,7 +208,7 @@ module bster_testbench();
     ram
     (
     aclk,
-    aresetn,
+    ~aresetn,
     ram_axi_awid,
     ram_axi_awaddr,
     ram_axi_awlen,
@@ -251,7 +271,6 @@ module bster_testbench();
         cmd_tvalid = 0;
         cmd_tdata = 0;
         cpl_tready = 0;
-        sts_tready = 0;
         #30;
         aresetn = 1;
         #30;
@@ -291,7 +310,9 @@ module bster_testbench();
 
         `MSG("Check BSTer core is properly IDLE during and after reset");
 
+        @(negedge aclk);
         aresetn = 0;
+        @(posedge aclk);
 
         `MSG("Check IDLE under reset");
 
@@ -303,26 +324,30 @@ module bster_testbench();
         `ASSERT(rvalid == 1'b0);
         `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
         `ASSERT(rresp == 1'b0);
-        `ASSERT(cmd_tready == 1'b0);
+
+        // `ASSERT(cmd_tready == 1'b0);
+        `ASSERT(cpl_tvalid == 1'b0);
+        `ASSERT(cpl_tdata == {AXI4S_WIDTH{1'b0}});
+
         `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
-        `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
-        `ASSERT(ram_axi_awlen == 8'b0);
-        `ASSERT(ram_axi_awsize == 3'b0);
-        `ASSERT(ram_axi_awburst == 2'b0);
+        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_awlen == 8'b0);
+        `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH));
+        `ASSERT(ram_axi_awburst == 2'b1);
         `ASSERT(ram_axi_awlock == 1'b0);
         `ASSERT(ram_axi_awcache == 4'b0);
         `ASSERT(ram_axi_awprot == 3'b0);
         `ASSERT(ram_axi_awvalid == 1'b0);
-        `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
-        `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
-        `ASSERT(ram_axi_wlast == 1'b0);
+        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_wlast == 1'b0);
         `ASSERT(ram_axi_wvalid == 1'b0);
-        `ASSERT(ram_axi_bready == 1'b0);
+        // `ASSERT(ram_axi_bready == 1'b0);
         `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}});
-        `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
-        `ASSERT(ram_axi_arlen == 8'b0);
-        `ASSERT(ram_axi_arsize == 3'b0);
-        `ASSERT(ram_axi_arburst == 2'b0);
+        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_arlen == 8'b0);
+        `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH));
+        `ASSERT(ram_axi_arburst == 2'b1);
         `ASSERT(ram_axi_arlock == 1'b0);
         `ASSERT(ram_axi_arcache == 4'b0);
         `ASSERT(ram_axi_arprot == 3'b0);
@@ -330,8 +355,9 @@ module bster_testbench();
         `ASSERT(ram_axi_rready == 1'b0);
 
         #10;
+        @(negedge aclk);
         aresetn = 1;
-        #10;
+        @(posedge aclk);
 
         `MSG("Check IDLE after reset release");
 
@@ -343,38 +369,49 @@ module bster_testbench();
         `ASSERT(rvalid == 1'b0);
         `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
         `ASSERT(rresp == 1'b0);
+
         `ASSERT(cmd_tready == 1'b1);
+        `ASSERT(cpl_tvalid == 1'b0);
+        `ASSERT(cpl_tdata == 0);
+
         `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
-        `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
-        `ASSERT(ram_axi_awlen == 8'b0);
-        `ASSERT(ram_axi_awsize == 3'b0);
-        `ASSERT(ram_axi_awburst == 2'b0);
+        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_awlen == 8'b0);
+        `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH));
+        `ASSERT(ram_axi_awburst == 2'b1);
         `ASSERT(ram_axi_awlock == 1'b0);
         `ASSERT(ram_axi_awcache == 4'b0);
         `ASSERT(ram_axi_awprot == 3'b0);
         `ASSERT(ram_axi_awvalid == 1'b0);
-        `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
-        `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
-        `ASSERT(ram_axi_wlast == 1'b0);
+        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_wlast == 1'b0);
         `ASSERT(ram_axi_wvalid == 1'b0);
-        `ASSERT(ram_axi_bready == 1'b0);
+        // `ASSERT(ram_axi_bready == 1'b0);
         `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}});
-        `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
-        `ASSERT(ram_axi_arlen == 8'b0);
-        `ASSERT(ram_axi_arsize == 3'b0);
-        `ASSERT(ram_axi_arburst == 2'b0);
+        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
+        // `ASSERT(ram_axi_arlen == 8'b0);
+        `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH));
+        `ASSERT(ram_axi_arburst == 2'b1);
         `ASSERT(ram_axi_arlock == 1'b0);
         `ASSERT(ram_axi_arcache == 4'b0);
         `ASSERT(ram_axi_arprot == 3'b0);
         `ASSERT(ram_axi_arvalid == 1'b0);
-        `ASSERT(ram_axi_rready == 1'b0);
+        // `ASSERT(ram_axi_rready == 1'b0);
 
     `UNIT_TEST_END
 
-    `UNIT_TEST("Try to issue some commands")
+    `UNIT_TEST("Try to issue a command after reset")
 
         `MSG("Give a try to issue an insert command");
         command(`INSERT_TOKEN, 0, 0);
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Insert tokens into tree")
+
+        token = $urandom() % 32;
+        command(`INSERT_TOKEN, 12, 24);
 
     `UNIT_TEST_END
 
