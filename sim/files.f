@@ -17,4 +17,4 @@
 ../src/tree_space_manager.sv
 ../src/memory_driver.sv
 +define+VERBOSE
-+define+TIMEOUT=10
++define+TIMEOUT=500

@@ -38,10 +38,13 @@ Spec:
       application.
     - All operations parsing the tree rely on this field.
     - A token can embbed payload
-- Support 3 basic operations: insert, delete and search
-    - search: pre-order, in-order, and post-order supported
-    - two modes: depth-first order and breadth-first order
-- Support shallow copy to create min and max heap
+- Support 3 basic operations:
+    - Insert
+    - Delete
+    - [Search](https://en.wikipedia.org/wiki/Tree_traversal). Two modes available:
+        - depth-first order (as pre-order, in-order or post-order)
+        - breadth-first order (also named level order)
+- Advanced operation: shallow copy
     - can copy the content of the tree in another memory location
       and reorder it to create min or max heap tree
 - Support digest computation:
@@ -52,11 +55,13 @@ Spec:
 ## Commands
 
 All commands are issued by the user on AXI4S slave interface.
-All commands' completion and status are driven on AXI4S master interface.
+
+All commands' completion and status are driven on AXI4S master interface by
+the IP core.
 
 Command interface:
-    - MSB: the command coded with 8 bits
-    - LSB: the token value and its optional data payload
+- MSB: the command coded with 8 bits
+- LSB: the token value and its optional data payload
 
 The command interface must be sized to enclose the command, the token and
 the payload. If not wide enough, the IP can't work properly. For instance,
@@ -67,10 +72,10 @@ at least 52 bits. Token and payload width are defined with respectively
     (TOKEN_WIDTH+PAYLOAD_WIDTH+8) <= AXI4S_WIDTH
 
 Completion interface:
-    - MSB: the command status (1 bit)
-    - LSB: the payload (content depends the command issued)
+- MSB: the command status (1 bit)
+- LSB: the payload (content depends the command issued)
 
-Both the interface use the same parameter (`AXI4S_WIDTH`) to be size.
+Both the interfaces use the same parameter (`AXI4S_WIDTH`) to be sized.
 
     (PAYLOAD_WIDTH+1) <= AXI4S_WIDTH
 
@@ -137,7 +142,7 @@ Both the interface use the same parameter (`AXI4S_WIDTH`) to be size.
 
 - Create tree
     - Opcode = 0x40
-    - Read genesis address and create a root node to build a tree
+    - Read root address and create a root node to build a tree
     - Return status = 0 if successful, 1 if failed to access memory.
 
 - (Verify tree conformance) (TBD)
@@ -170,17 +175,16 @@ Both the interface use the same parameter (`AXI4S_WIDTH`) to be size.
 
 ## Node Structure
 
-- Token (`DWIDTH` bits)
+- Payload (`DWIDTH` bits)
 - Parent node address (`AWIDTH` bits)
 - Left child address (`AWIDTH` bits)
 - Right child address (`AWIDTH` bits)
-- Information (`DWIDTH` bits)
-    - has payload (1 bit)
-    - is genesis block (1 bit)
+- Token (`DWIDTH` bits)
+- Information (8 bits)
+    - reserved (5 bits)
+    - is root block (1 bit)
     - has left child (1 bit)
     - has right child (1 bit)
-    - is smallest child (1 bit)
-- Payload (`DWIDTH` bits) (**optional**)
 - Node digest (hash of all the other fields) (`DWIDTH` bits) (**optional**)
 
 
@@ -246,10 +250,10 @@ Address are indicated with byte oriented notation.
 ### Insert token
 
 1. Check memory is not full. If full return the appropriate status code.
-2. Check genesis is used, if not use its address and go to `Step 3`, else go to
+2. Check root is used, if not use its address and go to `Step 3`, else go to
    `Step 4`
-3. If use genesis block, simply store the token and go back `Step 1`
-4. Read genesis block and compare its token's value to insert:
+3. If use root block, simply store the token and go back `Step 1`
+4. Read root block and compare its token's value to insert:
     - If new token is smaller, store left child address and continue to `Step 5`
     - If new token is biggest, store right child address and continue to `Step 5`
 5. Read next block address and compare its token's value to insert.
@@ -261,5 +265,3 @@ Address are indicated with byte oriented notation.
     - Else if block's children can't be used because already linked in the tree:
         - If new token is smaller, store left child address and repeat `Step 5`
         - If new token is biggest, store right child address and repeat `Step 5`
-
-

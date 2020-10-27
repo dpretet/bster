@@ -139,10 +139,10 @@ module bster
 
     logic                        tree_mgt_req_valid;
     logic                        tree_mgt_req_ready;
-    logic [     TOKEN_WIDTH-1:0] tree_mgt_req_addr;
+    logic [  RAM_ADDR_WIDTH-1:0] tree_mgt_req_addr;
     logic                        tree_mgt_free_valid;
     logic                        tree_mgt_free_ready;
-    logic [     TOKEN_WIDTH-1:0] tree_mgt_free_addr;
+    logic [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr;
     logic                        tree_mgt_full;
 
     logic                        mem_valid;
@@ -152,6 +152,7 @@ module bster
     logic [  RAM_ADDR_WIDTH-1:0] mem_addr;
     logic [  RAM_DATA_WIDTH-1:0] mem_wr_data;
     logic                        mem_rd_valid;
+    logic                        mem_rd_ready;
     logic [  RAM_DATA_WIDTH-1:0] mem_rd_data;
 
     // AXI4-lite interface to access internal
@@ -248,6 +249,7 @@ module bster
         .mem_addr            (mem_addr           ),
         .mem_wr_data         (mem_wr_data        ),
         .mem_rd_valid        (mem_rd_valid       ),
+        .mem_rd_ready        (mem_rd_ready       ),
         .mem_rd_data         (mem_rd_data        )
     );
 
@@ -255,7 +257,7 @@ module bster
     // address and releasing unused one
     tree_space_manager
     #(
-        .TOKEN_WIDTH (TOKEN_WIDTH)
+        .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH)
     )
     tree_space_manager_inst
     (
@@ -290,6 +292,7 @@ module bster
         .mem_addr         (mem_addr       ),
         .mem_wr_data      (mem_wr_data    ),
         .mem_rd_valid     (mem_rd_valid   ),
+        .mem_rd_ready     (mem_rd_ready   ),
         .mem_rd_data      (mem_rd_data    ),
         .ram_axi_awid     (ram_axi_awid   ),
         .ram_axi_awaddr   (ram_axi_awaddr ),

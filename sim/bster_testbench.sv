@@ -97,6 +97,21 @@ module bster_testbench();
     // Tasks to inject commands and sink completions/status
     `include "bster_tasks.sv"
 
+    function print_parameters();
+    begin
+        $display("Core Parameters Setup:");
+        $display("  - TOKEN_WIDTH    = %0d", TOKEN_WIDTH);
+        $display("  - PAYLOAD_WIDTH  = %0d", PAYLOAD_WIDTH);
+        $display("  - CSR_ADDR_WIDTH = %0d", CSR_ADDR_WIDTH);
+        $display("  - CSR_DATA_WIDTH = %0d", CSR_DATA_WIDTH);
+        $display("  - AXI4S_WIDTH    = %0d", AXI4S_WIDTH);
+        $display("  - RAM_DATA_WIDTH = %0d", RAM_DATA_WIDTH);
+        $display("  - RAM_ADDR_WIDTH = %0d", RAM_ADDR_WIDTH);
+        $display("  - RAM_STRB_WIDTH = %0d", (RAM_DATA_WIDTH/8));
+        $display("  - RAM_ID_WIDTH   = %0d", RAM_ID_WIDTH);
+    end
+    endfunction
+
 
     /////////////////////////////////////////////////////////////
     // Maximum number of bytes to transfer in each data transfer,
@@ -256,6 +271,7 @@ module bster_testbench();
 
     task setup(msg="Initialize core's IOs");
     begin
+        print_parameters();
         aresetn = 0;
         awvalid = 0;
         awaddr = 0;
@@ -316,43 +332,43 @@ module bster_testbench();
 
         `MSG("Check IDLE under reset");
 
-        `ASSERT(awready == 1'b0);
-        `ASSERT(wready == 1'b0);
-        `ASSERT(bvalid == 1'b0);
-        `ASSERT(bresp == 2'b0);
-        `ASSERT(arready == 1'b0);
-        `ASSERT(rvalid == 1'b0);
-        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
-        `ASSERT(rresp == 1'b0);
+        `ASSERT(awready == 1'b0, "awready");
+        `ASSERT(wready == 1'b0, "wready");
+        `ASSERT(bvalid == 1'b0, "bvalid");
+        `ASSERT(bresp == 2'b0, "bresp");
+        `ASSERT(arready == 1'b0, "arready");
+        `ASSERT(rvalid == 1'b0, "rvalid");
+        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}}, "rdata");
+        `ASSERT(rresp == 1'b0, "rresp");
 
-        // `ASSERT(cmd_tready == 1'b0);
-        `ASSERT(cpl_tvalid == 1'b0);
-        `ASSERT(cpl_tdata == {AXI4S_WIDTH{1'b0}});
+        // `ASSERT(cmd_tready == 1'b0, "");
+        `ASSERT(cpl_tvalid == 1'b0, "tvalid");
+        `ASSERT(cpl_tdata == {AXI4S_WIDTH{1'b0}}, "tdata");
 
-        `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_awlen == 8'b0);
-        `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH));
-        `ASSERT(ram_axi_awburst == 2'b1);
-        `ASSERT(ram_axi_awlock == 1'b0);
-        `ASSERT(ram_axi_awcache == 4'b0);
-        `ASSERT(ram_axi_awprot == 3'b0);
-        `ASSERT(ram_axi_awvalid == 1'b0);
-        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_wlast == 1'b0);
-        `ASSERT(ram_axi_wvalid == 1'b0);
-        // `ASSERT(ram_axi_bready == 1'b0);
-        `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_arlen == 8'b0);
-        `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH));
-        `ASSERT(ram_axi_arburst == 2'b1);
-        `ASSERT(ram_axi_arlock == 1'b0);
-        `ASSERT(ram_axi_arcache == 4'b0);
-        `ASSERT(ram_axi_arprot == 3'b0);
-        `ASSERT(ram_axi_arvalid == 1'b0);
-        `ASSERT(ram_axi_rready == 1'b0);
+        `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}}, "awid");
+        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}}, "awaddr");
+        // `ASSERT(ram_axi_awlen == 8'b0, "awlen");
+        `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH), "awsier");
+        `ASSERT(ram_axi_awburst == 2'b1, "awburst");
+        `ASSERT(ram_axi_awlock == 1'b0, "awlock");
+        `ASSERT(ram_axi_awcache == 4'b0, "awcache");
+        `ASSERT(ram_axi_awprot == 3'b0, "awprot");
+        `ASSERT(ram_axi_awvalid == 1'b0, "awvalid");
+        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}}, "wdata");
+        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}}, "wstrb");
+        // `ASSERT(ram_axi_wlast == 1'b0, "wlast");
+        `ASSERT(ram_axi_wvalid == 1'b0, "wvalid");
+        // `ASSERT(ram_axi_bready == 1'b0, "bready");
+        `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}}, "arid");
+        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}}, "araddr");
+        // `ASSERT(ram_axi_arlen == 8'b0, "arlen");
+        `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH), "arsize");
+        `ASSERT(ram_axi_arburst == 2'b1, "arburst");
+        `ASSERT(ram_axi_arlock == 1'b0, "arlock");
+        `ASSERT(ram_axi_arcache == 4'b0, "arcache");
+        `ASSERT(ram_axi_arprot == 3'b0, "arprot");
+        `ASSERT(ram_axi_arvalid == 1'b0, "arvalid");
+        `ASSERT(ram_axi_rready == 1'b0, "rready");
 
         #10;
         @(negedge aclk);
@@ -361,43 +377,43 @@ module bster_testbench();
 
         `MSG("Check IDLE after reset release");
 
-        `ASSERT(awready == 1'b1);
-        `ASSERT(wready == 1'b1);
-        `ASSERT(bvalid == 1'b0);
-        `ASSERT(bresp == 2'b0);
-        `ASSERT(arready == 1'b1);
-        `ASSERT(rvalid == 1'b0);
-        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}});
-        `ASSERT(rresp == 1'b0);
+        `ASSERT(awready == 1'b1, "awready");
+        `ASSERT(wready == 1'b1, "wready");
+        `ASSERT(bvalid == 1'b0, "bvalid");
+        `ASSERT(bresp == 2'b0, "bresp");
+        `ASSERT(arready == 1'b1, "arready");
+        `ASSERT(rvalid == 1'b0, "rvalid");
+        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}}, "rdata");
+        `ASSERT(rresp == 1'b0, "rresp");
 
-        `ASSERT(cmd_tready == 1'b1);
-        `ASSERT(cpl_tvalid == 1'b0);
-        `ASSERT(cpl_tdata == 0);
+        `ASSERT(cmd_tready == 1'b1, "tready");
+        `ASSERT(cpl_tvalid == 1'b0, "tvalid");
+        `ASSERT(cpl_tdata == 0, "tdata");
 
-        `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_awlen == 8'b0);
-        `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH));
-        `ASSERT(ram_axi_awburst == 2'b1);
-        `ASSERT(ram_axi_awlock == 1'b0);
-        `ASSERT(ram_axi_awcache == 4'b0);
-        `ASSERT(ram_axi_awprot == 3'b0);
-        `ASSERT(ram_axi_awvalid == 1'b0);
-        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_wlast == 1'b0);
-        `ASSERT(ram_axi_wvalid == 1'b0);
-        // `ASSERT(ram_axi_bready == 1'b0);
-        `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}});
-        // `ASSERT(ram_axi_arlen == 8'b0);
-        `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH));
-        `ASSERT(ram_axi_arburst == 2'b1);
-        `ASSERT(ram_axi_arlock == 1'b0);
-        `ASSERT(ram_axi_arcache == 4'b0);
-        `ASSERT(ram_axi_arprot == 3'b0);
-        `ASSERT(ram_axi_arvalid == 1'b0);
-        // `ASSERT(ram_axi_rready == 1'b0);
+        `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}}, "awid");
+        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}}, "awaddrc");
+        // `ASSERT(ram_axi_awlen == 8'b0, "awlen");
+        `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH), "awsize");
+        `ASSERT(ram_axi_awburst == 2'b1, "awburst");
+        `ASSERT(ram_axi_awlock == 1'b0, "awlock");
+        `ASSERT(ram_axi_awcache == 4'b0, "awcache");
+        `ASSERT(ram_axi_awprot == 3'b0, "awprot");
+        `ASSERT(ram_axi_awvalid == 1'b0, "awalid");
+        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}}, "wdata");
+        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}}, "wstrb");
+        // `ASSERT(ram_axi_wlast == 1'b0, "wlast");
+        `ASSERT(ram_axi_wvalid == 1'b0, "wvalid");
+        // `ASSERT(ram_axi_bready == 1'b0, "bready");
+        `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}}, "arid");
+        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}}, "araddr");
+        // `ASSERT(ram_axi_arlen == 8'b0, "arlen");
+        `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH), "arsize");
+        `ASSERT(ram_axi_arburst == 2'b1, "arburst");
+        `ASSERT(ram_axi_arlock == 1'b0, "arlock");
+        `ASSERT(ram_axi_arcache == 4'b0, "arcache");
+        `ASSERT(ram_axi_arprot == 3'b0, "arprot");
+        `ASSERT(ram_axi_arvalid == 1'b0, "arvalid");
+        // `ASSERT(ram_axi_rready == 1'b0, "rready");
 
     `UNIT_TEST_END
 
@@ -408,10 +424,22 @@ module bster_testbench();
 
     `UNIT_TEST_END
 
-    `UNIT_TEST("Insert tokens into tree")
+    `UNIT_TEST("Insert root token into tree")
 
         token = $urandom() % 32;
         command(`INSERT_TOKEN, 12, 24);
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Insert tokens into tree")
+
+        token = $urandom() % 32;
+        command(`INSERT_TOKEN, 1, 1);
+        command(`INSERT_TOKEN, 2, 2);
+        command(`INSERT_TOKEN, 3, 3);
+        command(`INSERT_TOKEN, 4, 4);
+        command(`INSERT_TOKEN, 5, 5);
+        command(`INSERT_TOKEN, 6, 6);
 
     `UNIT_TEST_END
 
