@@ -2,7 +2,7 @@
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
-`timescale 1 ns / 100 ps
+`timescale 1 ns / 1 ps
 `default_nettype none
 
 
@@ -18,7 +18,7 @@ module memory_driver
         // Width of address bus in bits
         parameter RAM_ADDR_WIDTH = 16,
         // Width of wstrb (width of data bus in words)
-        parameter RAM_STRB_WIDTH = (DATA_WIDTH/8),
+        parameter RAM_STRB_WIDTH = (RAM_DATA_WIDTH/8),
         // Width of ID signal
         parameter RAM_ID_WIDTH = 8
     )(
@@ -258,4 +258,3 @@ module memory_driver
 endmodule
 
 `resetall
-

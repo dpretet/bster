@@ -2,10 +2,14 @@
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
-`timescale 1 ns / 100 ps
+`timescale 1 ns / 1 ps
 `default_nettype none
 
 `include "bster_h.sv"
+
+// Engine managing the user request to operate over the tree. Rely on
+// memory driver to access the AXI4 RAM and tree space manager to get and free
+// address
 
 module bst_engine
 
@@ -19,7 +23,7 @@ module bst_engine
         // Width of address bus in bits
         parameter RAM_ADDR_WIDTH = 16,
         // Width of wstrb (width of data bus in words)
-        parameter RAM_STRB_WIDTH = (DATA_WIDTH/8),
+        parameter RAM_STRB_WIDTH = (RAM_DATA_WIDTH/8),
         // Width of ID signal
         parameter RAM_ID_WIDTH = 8
     )(
@@ -51,6 +55,7 @@ module bst_engine
         input  wire [  RAM_DATA_WIDTH-1:0] mem_rd_data
     );
 
+    // TODO: Get it from CSR or tree space manager
     localparam [RAM_ADDR_WIDTH-1:0] ROOT_ADDR = {RAM_ADDR_WIDTH{1'b0}};
 
     typedef enum logic[3:0] {
@@ -70,29 +75,25 @@ module bst_engine
     ctrlr_states fsm_stack;
 
     logic                      tree_ready;
-    logic [               7:0] cmd_store;
     logic [   TOKEN_WIDTH-1:0] token_store;
     logic [ PAYLOAD_WIDTH-1:0] data_store;
 
-    logic [   TOKEN_WIDTH-1:0] next_addr;
+    logic [RAM_ADDR_WIDTH-1:0] next_addr;
 
-    logic [RAM_ADDR_WIDTH-1:0] rdaddr;
+    logic [RAM_ADDR_WIDTH-1:0] addr;
+    logic [RAM_ADDR_WIDTH-1:0] parent_addr;
+    logic [RAM_DATA_WIDTH-1:0] wrdata;
     logic [RAM_DATA_WIDTH-1:0] rddata;
 
-    logic                      is_root;
     logic [               1:0] place_found;
     logic                      update_parent;
-    logic [RAM_ADDR_WIDTH-1:0] parent_addr;
 
     logic [ PAYLOAD_WIDTH-1:0] rdnode_payload;
-    logic                      rdnode_is_left_child;
     logic                      rdnode_has_right_child;
     logic                      rdnode_has_left_child;
-    logic                      rdnode_is_root;
-    logic                      rdnode_has_payload;
     logic [RAM_ADDR_WIDTH-1:0] rdnode_right_child_addr;
     logic [RAM_ADDR_WIDTH-1:0] rdnode_left_child_addr;
-    logic [RAM_ADDR_WIDTH-1:0] rdnode_parent_child_addr;
+    logic [RAM_ADDR_WIDTH-1:0] rdnode_parent_addr;
     logic [   TOKEN_WIDTH-1:0] rdnode_token;
     logic [             8-1:0] rdnode_info;
     // -------------------------------------------------------------------------
@@ -106,13 +107,11 @@ module bst_engine
     // Store commands' parameter and available address when activated
     always @ (posedge aclk or negedge aresetn) begin
         if (aresetn == 1'b0) begin
-            cmd_store <= 8'b0;
             token_store <= {TOKEN_WIDTH{1'b0}};
             data_store <= {PAYLOAD_WIDTH{1'b0}};
-            next_addr  <= {TOKEN_WIDTH{1'b0}};
+            next_addr  <= {RAM_ADDR_WIDTH{1'b0}};
         end else begin
             if (itf_valid && itf_ready) begin
-                cmd_store <= itf_cmd;
                 token_store <= itf_token;
                 data_store <= itf_data;
             end
@@ -129,25 +128,12 @@ module bst_engine
     assign mem_valid = (fsm == WR_RAM || fsm == RD_RAM);
     assign mem_wr = (fsm == WR_RAM);
     assign mem_rd = (fsm == RD_RAM);
-    assign mem_addr = rdaddr;
-    assign mem_wr_data = {  data_store,                 // data payload
-                            {RAM_ADDR_WIDTH{1'b0}},     // left child address
-                            {RAM_ADDR_WIDTH{1'b0}},     // right child address
-                            {RAM_ADDR_WIDTH{1'b0}},     // parent address
-                            token_store,                // token
-                            {
-                                5'b0,                   // reserved
-                                is_root,                // is root node
-                                1'b0,                   // has left child
-                                1'b0                    // has right child
-                            }
-                         };
-
+    assign mem_addr = addr;
+    assign mem_wr_data = wrdata;
     assign mem_rd_ready = (fsm == WAIT_RAM_CPL);
 
-    // In charge of storage of data coming from the RAM
+    // In charge of data storage coming from the RAM
     always @ (posedge aclk or negedge aresetn) begin
-
         if (~aresetn) begin
             rddata <= {RAM_DATA_WIDTH{1'b0}};
         end else begin
@@ -156,15 +142,16 @@ module bst_engine
         end
     end
 
+    // Local split of the different node fields to read
+    // easier the code and waveform
     assign {rdnode_payload,
             rdnode_left_child_addr,
             rdnode_right_child_addr,
-            rdnode_parent_child_addr,
+            rdnode_parent_addr,
             rdnode_token,
             rdnode_info
            } = rddata;
 
-    assign rdnode_is_root = rdnode_info[2];
     assign rdnode_has_left_child = rdnode_info[1];
     assign rdnode_has_right_child = rdnode_info[0];
 
@@ -176,7 +163,7 @@ module bst_engine
                                  fsm == IDLE && ~tree_mgt_full);
 
     assign tree_mgt_free_valid = 1'b0;
-    assign tree_mgt_free_addr = {TOKEN_WIDTH{1'b0}};
+    assign tree_mgt_free_addr = {RAM_ADDR_WIDTH{1'b0}};
 
     // -------------------------------------------------------------------------
     // Main FSM managing the user requests
@@ -185,11 +172,12 @@ module bst_engine
     always @ (posedge aclk or negedge aresetn) begin
 
         if (aresetn == 1'b0) begin
-            rdaddr <= {RAM_ADDR_WIDTH{1'b0}};;
+            addr <= {RAM_ADDR_WIDTH{1'b0}};
+            parent_addr <= {RAM_ADDR_WIDTH{1'b0}};
+            wrdata <= {RAM_DATA_WIDTH{1'b0}};
             tree_ready <= 1'b0;
             fsm <= IDLE;
             fsm_stack <= IDLE;
-            is_root <= 1'b0;
             place_found <= 2'b0;
             update_parent <= 1'b0;
         end else begin
@@ -200,10 +188,8 @@ module bst_engine
                 default: begin
 
                     fsm_stack <= IDLE;
-                    rdaddr <= ROOT_ADDR;
-                    place_found <= 2'b0;
                     update_parent <= 1'b0;
-
+                    place_found <= 2'b0;
                     // Instruction 1: INSERT_TOKEN
                     if (itf_valid && itf_cmd == `INSERT_TOKEN &&
                             ~tree_mgt_full) begin
@@ -215,27 +201,71 @@ module bst_engine
                 // Central state to insert a new token
                 INSERT_TOKEN: begin
 
-                    // Indicate if the root node is already used or not.
-                    tree_ready <= 1'b1;
-
                     // Tree is not yet ready, so first simply
                     // write the new value as the root node.
                     if (~tree_ready) begin
-                        is_root <= 1'b1;
+
+                        wrdata <= {data_store,             // data payload
+                                   {RAM_ADDR_WIDTH{1'b0}}, // left child addr
+                                   {RAM_ADDR_WIDTH{1'b0}}, // right child addr
+                                   {RAM_ADDR_WIDTH{1'b0}}, // parent address
+                                   token_store,            // token
+                                   {
+                                      5'b0,                // reserved
+                                      1'b1,                // is root node
+                                      1'b0,                // has left child
+                                      1'b0                 // has right child
+                                   }
+                                  };
+
+                        tree_ready <= 1'b1;
+                        addr <= ROOT_ADDR;
+                        update_parent <= 1'b0;
                         fsm <= WR_RAM;
                         fsm_stack <= IDLE;
+                    end
+                    // A place has been found to insert a new node, but it
+                    // updates first the parent, thus avoid to read it
+                    // again. New node will store in the next phase.
+                    else if (update_parent && place_found[1]) begin
 
-                    // Place for a new node has been found by
-                    // the search engine. Update parent with new child
-                    // address and write the child
-                    end else if (|place_found) begin
-                        is_root <= 1'b0;
+                        wrdata <= {rdnode_payload,
+                                   (~place_found[0]) ? next_addr : rdnode_left_child_addr,
+                                   (place_found[0]) ? next_addr : rdnode_right_child_addr,
+                                   rdnode_parent_addr,
+                                   rdnode_token,
+                                   rdnode_info[7:2],
+                                   (~place_found[0]) ? 1'b1 : rdnode_info[1],
+                                   (place_found[0]) ? 1'b1 : rdnode_info[0]
+                                  };
+
+                        addr <= parent_addr;
+                        update_parent <= 1'b0;
                         fsm <= WR_RAM;
+                        fsm_stack <= INSERT_TOKEN;
 
+                    end
+                    // After parent has been updated by the new child info,
+                    // write the child in the tree
+                    else if (place_found[1]) begin
+
+                        wrdata <= {data_store,
+                                   {RAM_ADDR_WIDTH{1'b0}},
+                                   {RAM_ADDR_WIDTH{1'b0}},
+                                   parent_addr,
+                                   token_store,
+                                   8'b0
+                                  };
+
+                        addr <= next_addr;
+                        update_parent <= 1'b0;
+                        fsm <= WR_RAM;
+                        fsm_stack <= IDLE;
+                    end
                     // Start to dive into the tree, starting from the
                     // root node to find a place for the new token
-                    end else begin
-                        is_root <= 1'b0;
+                    else begin
+                        addr <= ROOT_ADDR;
                         fsm <= RD_RAM;
                         fsm_stack <= FIND_EMPTY_PLACE;
                     end
@@ -244,33 +274,43 @@ module bst_engine
                 // Search engine for insert token instruction
                 FIND_EMPTY_PLACE: begin
 
-                    // Is smaller tthan node's token
+                    // Is smaller than node's token
                     if (token_store <= rdnode_token) begin
                         // If has a left child, continue to search
                         // across its branch
                         if (rdnode_has_left_child) begin
-                            rdaddr <= rdnode_left_child_addr;
+                            addr <= rdnode_left_child_addr;
+                            update_parent <= 1'b0;
+                            place_found <= 2'b0;
                             fsm <= RD_RAM;
                             fsm_stack <= FIND_EMPTY_PLACE;
-                        // Else use this left slot for the new toek
-                        end else begin
+                        end
+                        // Else use this slot for the new token
+                        else begin
                             // Bit1=1: place found, Bit0=0: on left child
                             place_found <= 2'b10;
                             update_parent <= 1'b1;
+                            parent_addr <= addr;
                             fsm <= INSERT_TOKEN;
                         end
-                    // Is bigger tthan node's token
-                    end else if (token_store > rdnode_token) begin
+                    end
+                    // Is bigger than node's token
+                    else if (token_store > rdnode_token) begin
                         // If has a right child, continue to search
                         // across its branch
                         if (rdnode_has_right_child) begin
-                            rdaddr <= rdnode_right_child_addr;
+                            addr <= rdnode_right_child_addr;
+                            update_parent <= 1'b0;
+                            place_found <= 2'b0;
                             fsm <= RD_RAM;
                             fsm_stack <= FIND_EMPTY_PLACE;
-                        end else begin
+                        end
+                        // Else use this slot for the new token
+                        else begin
                             // Bit1=1: place found, Bit0=1: on right child
                             place_found <= 2'b11;
                             update_parent <= 1'b1;
+                            parent_addr <= addr;
                             fsm <= INSERT_TOKEN;
                         end
                     end

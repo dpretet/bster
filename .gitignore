@@ -4,3 +4,4 @@
 *.log
 tags
 TODO.md
+obj_dir

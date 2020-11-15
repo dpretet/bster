@@ -34,11 +34,10 @@ task command(
         `MSG("Injecting a command");
     `endif
 
-    @(negedge aclk);
     cmd_tdata[AXI4S_WIDTH-1-8+:8] = cmd;
     cmd_tdata[0+:TOKEN_WIDTH] = token;
     cmd_tdata[TOKEN_WIDTH+:PAYLOAD_WIDTH] = data;
-    @(posedge aclk);
+    @(negedge aclk);
     cmd_tvalid = 1'b1;
 
     for (cmd_timer=0;cmd_timer<`TIMEOUT;cmd_timer=cmd_timer+1) begin
@@ -48,7 +47,7 @@ task command(
         // Ensure we don't stay forever driving the interface
         if (cmd_timer == (`TIMEOUT-1))
             `ERROR("Reached timeout during command issue");
-        @(posedge aclk);
+        @(negedge aclk);
     end
 
     cmd_tvalid = 1'b0;

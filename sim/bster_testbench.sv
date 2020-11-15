@@ -6,7 +6,7 @@
 `include "svut_h.sv"
 `include "bster_h.sv"
 
-`timescale 1 ns / 100 ps
+`timescale 1 ns / 1 ps
 
 module bster_testbench();
 
@@ -93,6 +93,7 @@ module bster_testbench();
 
     // variables used into the testcases
     integer token;
+    integer data;
 
     // Tasks to inject commands and sink completions/status
     `include "bster_tasks.sv"
@@ -223,7 +224,7 @@ module bster_testbench();
     ram
     (
     aclk,
-    ~aresetn,
+    aresetn,
     ram_axi_awid,
     ram_axi_awaddr,
     ram_axi_awlen,
@@ -262,7 +263,7 @@ module bster_testbench();
     );
 
     initial aclk = 0;
-    always #2 aclk <= ~aclk;
+    always #1 aclk <= ~aclk;
 
     initial begin : INIT_BLOCK
         $dumpfile("bster_testbench.vcd");
@@ -271,7 +272,7 @@ module bster_testbench();
 
     task setup(msg="Initialize core's IOs");
     begin
-        print_parameters();
+        // print_parameters();
         aresetn = 0;
         awvalid = 0;
         awaddr = 0;
@@ -374,6 +375,7 @@ module bster_testbench();
         @(negedge aclk);
         aresetn = 1;
         @(posedge aclk);
+        @(posedge aclk);
 
         `MSG("Check IDLE after reset release");
 
@@ -433,13 +435,10 @@ module bster_testbench();
 
     `UNIT_TEST("Insert tokens into tree")
 
-        token = $urandom() % 32;
-        command(`INSERT_TOKEN, 1, 1);
-        command(`INSERT_TOKEN, 2, 2);
-        command(`INSERT_TOKEN, 3, 3);
-        command(`INSERT_TOKEN, 4, 4);
-        command(`INSERT_TOKEN, 5, 5);
-        command(`INSERT_TOKEN, 6, 6);
+        for (int i = 1; i <= 8; i=i+1) begin
+            data = $urandom() % 4096;
+            command(`INSERT_TOKEN, i, data);
+        end
 
     `UNIT_TEST_END
 

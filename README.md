@@ -19,10 +19,6 @@ FPGA and ASIC. It is designed with SystemVerilog.
 
 ## External dependencies
 
-BSTer IP testbench uses the following IP core:
-
-- https://github.com/alexforencich/verilog-axi/blob/master/rtl/axi_ram.v
-
 BSTer simulation relies for simulation on:
 
 - [Icarus Verilog](http://iverilog.icarus.com)

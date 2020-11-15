@@ -1,7 +1,4 @@
 +incdir+../src
-../deps/verilog-axi/rtl/axi_ram.v
-../deps/async_fifo/src/vlog/async_bidir_fifo.v
-../deps/async_fifo/src/vlog/async_bidir_ramif_fifo.v
 ../deps/async_fifo/src/vlog/async_fifo.v
 ../deps/async_fifo/src/vlog/fifo_2mem.v
 ../deps/async_fifo/src/vlog/fifomem_dp.v
@@ -16,5 +13,6 @@
 ../src/interface_handler.sv
 ../src/tree_space_manager.sv
 ../src/memory_driver.sv
+../src/axi_ram.sv
 +define+VERBOSE
-+define+TIMEOUT=500
++define+TIMEOUT=1000

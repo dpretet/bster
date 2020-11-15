@@ -19,6 +19,7 @@
     - Radix tree
     - Merkle tree
     - Prefix tree
+- [Binary search tree](https://en.wikipedia.org/wiki/Binary_search_tree)
 
 Spec:
 
@@ -54,9 +55,11 @@ Spec:
 
 ## Commands
 
-All commands are issued by the user on AXI4S slave interface.
+All commands are issued by the user on the AXI4S slave interface.
 
-All commands' completion and status are driven on AXI4S master interface by
+All commands are coded over 8 bits
+
+All commands' completion and status are driven on the AXI4S master interface by
 the IP core.
 
 Command interface:
@@ -175,16 +178,19 @@ Both the interfaces use the same parameter (`AXI4S_WIDTH`) to be sized.
 
 ## Node Structure
 
-- Payload (`DWIDTH` bits)
-- Parent node address (`AWIDTH` bits)
-- Left child address (`AWIDTH` bits)
-- Right child address (`AWIDTH` bits)
-- Token (`DWIDTH` bits)
+Into BST engine, a node is read/write to memory on a single word. Follow a
+description from LSB to MSB of a node.
+
 - Information (8 bits)
     - reserved (5 bits)
     - is root block (1 bit)
     - has left child (1 bit)
     - has right child (1 bit)
+- Token (`DWIDTH` bits)
+- Parent node address (`AWIDTH` bits)
+- Right child address (`AWIDTH` bits)
+- Left child address (`AWIDTH` bits)
+- Payload (`DWIDTH` bits)
 - Node digest (hash of all the other fields) (`DWIDTH` bits) (**optional**)
 
 
@@ -234,34 +240,3 @@ Address are indicated with byte oriented notation.
 - Upper bits reserved (**Reserved**))
     - Reserved for future update or internal usage.
     - Return error if read/write access issued in these fields
-
-
-## Command Algorithms
-
-### Startup
-
-1. Write, then read an empty address to check memory access. Go in ERROR state
-   if failling. Register 32'h0C / bit 1 will be asserted and AXI4S interfaces
-   will remain unreacheable until restart applied with correct configuration.
-2. Check root block format. If not conform, create a new one. Applicable only
-   if digest calculus is enabled with parameter).
-3. Go to IDLE state, ready to receive requests.
-
-### Insert token
-
-1. Check memory is not full. If full return the appropriate status code.
-2. Check root is used, if not use its address and go to `Step 3`, else go to
-   `Step 4`
-3. If use root block, simply store the token and go back `Step 1`
-4. Read root block and compare its token's value to insert:
-    - If new token is smaller, store left child address and continue to `Step 5`
-    - If new token is biggest, store right child address and continue to `Step 5`
-5. Read next block address and compare its token's value to insert.
-    - If block is empty or partially used, use it to store the incoming token:
-        - If new token is smaller than block's token, store it on left position.
-          Go back to `Step1`.
-        - If new token is bigger than block's token, store it on right position.
-          Go back to `Step1`.
-    - Else if block's children can't be used because already linked in the tree:
-        - If new token is smaller, store left child address and repeat `Step 5`
-        - If new token is biggest, store right child address and repeat `Step 5`

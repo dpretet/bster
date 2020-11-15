@@ -6,8 +6,14 @@ He wants to:
 - create the array
 - write values into it
 - read values
-- delete the array
+- sort value
+- search value
+- delete value
 
-Implement the algorithm to parse and manipulate the array
+Implement the algorithm to parse and manipulate the array.
 
-# Replace HashMap of C++ or Java
+# Others
+
+- [Array programming with Numpy](https://www.nature.com/articles/s41586-020-2649-2)
+- Implement array/dict in Python
+- Replace HashMap of C++ or Java

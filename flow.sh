@@ -91,8 +91,27 @@ main() {
 
     if [[ $1 == "lint" ]]; then
         printinfo "Start linting"
-        find src -name "*.*" -exec verilator \
-                                   --lint-only -Wno-lint +1800-2017ext+sv {} \;
+        verilator --lint-only \
+            +1800-2017ext+sv \
+            -Wall -cdc \
+            -I./src\
+            ./src/bst_engine.sv\
+            ./src/bster.sv\
+            ./src/bster_h.sv\
+            ./src/csr.sv\
+            ./src/interface_handler.sv\
+            ./src/memory_driver.sv\
+            ./src/tree_space_manager.sv\
+            ./src/axi_ram.sv\
+            ./deps/async_fifo/src/vlog/async_fifo.v\
+            ./deps/async_fifo/src/vlog/fifo_2mem.v\
+            ./deps/async_fifo/src/vlog/fifomem_dp.v\
+            ./deps/async_fifo/src/vlog/rptr_empty.v\
+            ./deps/async_fifo/src/vlog/sync_ptr.v\
+            ./deps/async_fifo/src/vlog/sync_r2w.v\
+            ./deps/async_fifo/src/vlog/sync_w2r.v\
+            ./deps/async_fifo/src/vlog/wptr_full.v\
+            --top-module bster
     fi
     if [[ $1 == "sim" ]]; then
         printinfo "Start simulation"

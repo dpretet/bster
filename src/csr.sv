@@ -2,7 +2,7 @@
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
-`timescale 1 ns / 100 ps
+`timescale 1 ns / 1 ps
 `default_nettype none
 
 `include "bster_h.sv"
@@ -36,8 +36,8 @@ module csr
         input  wire                         rready,
         output wire  [  CSR_DATA_WIDTH-1:0] rdata,
         output wire  [               2-1:0] rresp,
-        input  logic [      `CSR_WIDTH-1:0] csr_i,
-        output logic [      `CSR_WIDTH-1:0] csr_o
+        input  wire  [      `CSR_WIDTH-1:0] csr_i,
+        output wire  [      `CSR_WIDTH-1:0] csr_o
     );
 
     assign awready = aresetn;
@@ -47,7 +47,12 @@ module csr
     assign arready = aresetn;
     assign rvalid = 1'b0;
     assign rdata = {CSR_DATA_WIDTH{1'b0}};
-    assign rresp = 1'b0;
+    assign rresp = 2'b0;
+
+    logic [      `CSR_WIDTH-1:0] temp;
+
+    assign temp = csr_i;
+    assign csr_o = {`CSR_WIDTH{1'b0}};
 
 endmodule
 
