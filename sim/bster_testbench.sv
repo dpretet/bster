@@ -94,6 +94,7 @@ module bster_testbench();
     // variables used into the testcases
     integer token;
     integer data;
+    logic [AXI4S_WIDTH-1:0] cpl;
 
     // Tasks to inject commands and sink completions/status
     `include "bster_tasks.sv"
@@ -439,6 +440,46 @@ module bster_testbench();
             data = $urandom() % 4096;
             command(`INSERT_TOKEN, i, data);
         end
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Search into a NULL tree")
+
+        for (int i = 1; i <= 8; i=i+1) begin
+            data = $urandom() % 4096;
+            command(`SEARCH_TOKEN, i, data);
+            completion(cpl);
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1, 
+                    "expect an error because the tree is not initialized");
+        end
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Insert token then read them")
+
+        for (int i = 1; i <= 8; i=i+1) begin
+            data = $urandom() % 4096;
+            command(`INSERT_TOKEN, i, data);
+            command(`SEARCH_TOKEN, i, 0);
+            completion(cpl);
+            `ASSERT(cpl[PAYLOAD_WIDTH-1:0] == data, 
+                    "read data is not written data");
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0, 
+                    "don't expect an error status");
+        end
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Insert tokens then try to search a value not stored")
+
+        for (int i = 1; i <= 8; i=i+1) begin
+            data = $urandom() % 4096;
+            command(`INSERT_TOKEN, i, data);
+        end
+        command(`SEARCH_TOKEN, 0, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1, 
+                "expect an error while we search for a value not stored");
 
     `UNIT_TEST_END
 

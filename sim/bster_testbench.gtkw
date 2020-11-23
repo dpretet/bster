@@ -1,21 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Mon Nov 16 19:56:10 2020
+[*] Mon Nov 23 10:27:34 2020
 [*]
 [dumpfile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.vcd"
-[dumpfile_mtime] "Mon Nov 16 19:00:45 2020"
-[dumpfile_size] 87336
+[dumpfile_mtime] "Mon Nov 23 10:26:46 2020"
+[dumpfile_size] 452685
 [savefile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.gtkw"
-[timestart] 353010
-[size] 1886 1022
+[timestart] 2983900
+[size] 1931 1192
 [pos] -1 -1
-*-13.859726 373590 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-16.354633 3409000 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] bster_testbench.
 [treeopen] bster_testbench.dut.
 [sst_width] 243
 [signals_width] 511
 [sst_expanded] 1
-[sst_vpaned_height] 525
+[sst_vpaned_height] 544
 @800200
 -tb
 @28
@@ -53,29 +53,45 @@ bster_testbench.rvalid
 bster_testbench.rready
 @1401200
 -axi4-lite
-@c00200
+@800200
 -command
 @22
-bster_testbench.cmd_tdata[127:0]
+bster_testbench.dut.intf_inst.cmd_tdata[127:0]
 @28
-bster_testbench.cmd_tvalid
-bster_testbench.cmd_tready
-bster_testbench.dut.itf_inst.itf_valid
-bster_testbench.dut.itf_inst.itf_ready
+bster_testbench.dut.intf_inst.cmd_tready
+bster_testbench.dut.intf_inst.cmd_tvalid
 @22
-bster_testbench.dut.itf_inst.itf_cmd[7:0]
-bster_testbench.dut.itf_inst.itf_token[7:0]
-bster_testbench.dut.itf_inst.itf_data[31:0]
-@1401200
+bster_testbench.dut.intf_inst.req_cmd[7:0]
+bster_testbench.dut.intf_inst.req_data[31:0]
+@28
+bster_testbench.dut.intf_inst.req_ready
+@22
+bster_testbench.dut.intf_inst.req_token[7:0]
+@28
+bster_testbench.dut.intf_inst.req_valid
+@22
+bster_testbench.dut.intf_inst.cpl_tdata[127:0]
+@28
+bster_testbench.dut.intf_inst.cpl_tready
+bster_testbench.dut.intf_inst.cpl_tvalid
+@22
+bster_testbench.dut.intf_inst.cpl_data[31:0]
+@28
+bster_testbench.dut.intf_inst.cpl_ready
+@29
+bster_testbench.dut.intf_inst.cpl_status
+@28
+bster_testbench.dut.intf_inst.cpl_valid
+@1000200
 -command
-@c00200
+@800200
 -Completion
 @22
 bster_testbench.cpl_tdata[127:0]
 @28
 bster_testbench.cpl_tvalid
 bster_testbench.cpl_tready
-@1401200
+@1000200
 -Completion
 @c00200
 -tree manager
@@ -103,13 +119,24 @@ bster_testbench.dut.bst_engine_inst.aclk
 bster_testbench.dut.bst_engine_inst.aresetn
 @200
 -interface
-@28
-bster_testbench.dut.bst_engine_inst.itf_valid
-bster_testbench.dut.bst_engine_inst.itf_ready
+-
 @22
-bster_testbench.dut.bst_engine_inst.itf_cmd[7:0]
-bster_testbench.dut.bst_engine_inst.itf_token[7:0]
-bster_testbench.dut.bst_engine_inst.itf_data[31:0]
+bster_testbench.dut.bst_engine_inst.req_cmd[7:0]
+bster_testbench.dut.bst_engine_inst.req_data[31:0]
+@28
+bster_testbench.dut.bst_engine_inst.req_valid
+bster_testbench.dut.bst_engine_inst.req_ready
+@22
+bster_testbench.dut.bst_engine_inst.req_token[7:0]
+@200
+-
+@28
+bster_testbench.dut.bst_engine_inst.cpl_valid
+bster_testbench.dut.bst_engine_inst.cpl_ready
+@22
+bster_testbench.dut.bst_engine_inst.cpl_data[31:0]
+@28
+bster_testbench.dut.bst_engine_inst.cpl_status
 @200
 -Token To Process
 @22
@@ -431,7 +458,7 @@ bster_testbench.dut.bst_engine_inst.tree_mgt_req_ready
 bster_testbench.dut.bst_engine_inst.tree_mgt_req_addr[15:0]
 @1000200
 -engine
-@800200
+@c00200
 -memory driver
 @28
 bster_testbench.dut.memory_driver_inst.aclk
@@ -446,6 +473,7 @@ bster_testbench.dut.memory_driver_inst.mem_wr_data[127:0]
 bster_testbench.dut.memory_driver_inst.mem_rd_data[127:0]
 @28
 bster_testbench.dut.memory_driver_inst.mem_rd_valid
+bster_testbench.dut.bst_engine_inst.mem_rd_ready
 @200
 -
 @28
@@ -505,9 +533,9 @@ bster_testbench.ram.s_axi_rready
 bster_testbench.ram.s_axi_rlast
 @22
 bster_testbench.ram.s_axi_rdata[127:0]
-@1000200
+@1401200
 -memory driver
-@800200
+@c00200
 -RAM
 @200
 -Write Channels
@@ -543,21 +571,152 @@ bster_testbench.ram.s_axi_arburst[1:0]
 @22
 bster_testbench.ram.s_axi_arcache[3:0]
 bster_testbench.ram.s_axi_arid[7:0]
-@23
 bster_testbench.ram.s_axi_arlen[7:0]
 @28
 bster_testbench.ram.s_axi_arlock
 bster_testbench.ram.s_axi_arprot[2:0]
 bster_testbench.ram.s_axi_arvalid
 bster_testbench.ram.s_axi_arready
-@22
+@c00022
 bster_testbench.ram.s_axi_rdata[127:0]
+@28
+(0)bster_testbench.ram.s_axi_rdata[127:0]
+(1)bster_testbench.ram.s_axi_rdata[127:0]
+(2)bster_testbench.ram.s_axi_rdata[127:0]
+(3)bster_testbench.ram.s_axi_rdata[127:0]
+(4)bster_testbench.ram.s_axi_rdata[127:0]
+(5)bster_testbench.ram.s_axi_rdata[127:0]
+(6)bster_testbench.ram.s_axi_rdata[127:0]
+(7)bster_testbench.ram.s_axi_rdata[127:0]
+(8)bster_testbench.ram.s_axi_rdata[127:0]
+(9)bster_testbench.ram.s_axi_rdata[127:0]
+(10)bster_testbench.ram.s_axi_rdata[127:0]
+(11)bster_testbench.ram.s_axi_rdata[127:0]
+(12)bster_testbench.ram.s_axi_rdata[127:0]
+(13)bster_testbench.ram.s_axi_rdata[127:0]
+(14)bster_testbench.ram.s_axi_rdata[127:0]
+(15)bster_testbench.ram.s_axi_rdata[127:0]
+(16)bster_testbench.ram.s_axi_rdata[127:0]
+(17)bster_testbench.ram.s_axi_rdata[127:0]
+(18)bster_testbench.ram.s_axi_rdata[127:0]
+(19)bster_testbench.ram.s_axi_rdata[127:0]
+(20)bster_testbench.ram.s_axi_rdata[127:0]
+(21)bster_testbench.ram.s_axi_rdata[127:0]
+(22)bster_testbench.ram.s_axi_rdata[127:0]
+(23)bster_testbench.ram.s_axi_rdata[127:0]
+(24)bster_testbench.ram.s_axi_rdata[127:0]
+(25)bster_testbench.ram.s_axi_rdata[127:0]
+(26)bster_testbench.ram.s_axi_rdata[127:0]
+(27)bster_testbench.ram.s_axi_rdata[127:0]
+(28)bster_testbench.ram.s_axi_rdata[127:0]
+(29)bster_testbench.ram.s_axi_rdata[127:0]
+(30)bster_testbench.ram.s_axi_rdata[127:0]
+(31)bster_testbench.ram.s_axi_rdata[127:0]
+(32)bster_testbench.ram.s_axi_rdata[127:0]
+(33)bster_testbench.ram.s_axi_rdata[127:0]
+(34)bster_testbench.ram.s_axi_rdata[127:0]
+(35)bster_testbench.ram.s_axi_rdata[127:0]
+(36)bster_testbench.ram.s_axi_rdata[127:0]
+(37)bster_testbench.ram.s_axi_rdata[127:0]
+(38)bster_testbench.ram.s_axi_rdata[127:0]
+(39)bster_testbench.ram.s_axi_rdata[127:0]
+(40)bster_testbench.ram.s_axi_rdata[127:0]
+(41)bster_testbench.ram.s_axi_rdata[127:0]
+(42)bster_testbench.ram.s_axi_rdata[127:0]
+(43)bster_testbench.ram.s_axi_rdata[127:0]
+(44)bster_testbench.ram.s_axi_rdata[127:0]
+(45)bster_testbench.ram.s_axi_rdata[127:0]
+(46)bster_testbench.ram.s_axi_rdata[127:0]
+(47)bster_testbench.ram.s_axi_rdata[127:0]
+(48)bster_testbench.ram.s_axi_rdata[127:0]
+(49)bster_testbench.ram.s_axi_rdata[127:0]
+(50)bster_testbench.ram.s_axi_rdata[127:0]
+(51)bster_testbench.ram.s_axi_rdata[127:0]
+(52)bster_testbench.ram.s_axi_rdata[127:0]
+(53)bster_testbench.ram.s_axi_rdata[127:0]
+(54)bster_testbench.ram.s_axi_rdata[127:0]
+(55)bster_testbench.ram.s_axi_rdata[127:0]
+(56)bster_testbench.ram.s_axi_rdata[127:0]
+(57)bster_testbench.ram.s_axi_rdata[127:0]
+(58)bster_testbench.ram.s_axi_rdata[127:0]
+(59)bster_testbench.ram.s_axi_rdata[127:0]
+(60)bster_testbench.ram.s_axi_rdata[127:0]
+(61)bster_testbench.ram.s_axi_rdata[127:0]
+(62)bster_testbench.ram.s_axi_rdata[127:0]
+(63)bster_testbench.ram.s_axi_rdata[127:0]
+(64)bster_testbench.ram.s_axi_rdata[127:0]
+(65)bster_testbench.ram.s_axi_rdata[127:0]
+(66)bster_testbench.ram.s_axi_rdata[127:0]
+(67)bster_testbench.ram.s_axi_rdata[127:0]
+(68)bster_testbench.ram.s_axi_rdata[127:0]
+(69)bster_testbench.ram.s_axi_rdata[127:0]
+(70)bster_testbench.ram.s_axi_rdata[127:0]
+(71)bster_testbench.ram.s_axi_rdata[127:0]
+(72)bster_testbench.ram.s_axi_rdata[127:0]
+(73)bster_testbench.ram.s_axi_rdata[127:0]
+(74)bster_testbench.ram.s_axi_rdata[127:0]
+(75)bster_testbench.ram.s_axi_rdata[127:0]
+(76)bster_testbench.ram.s_axi_rdata[127:0]
+(77)bster_testbench.ram.s_axi_rdata[127:0]
+(78)bster_testbench.ram.s_axi_rdata[127:0]
+(79)bster_testbench.ram.s_axi_rdata[127:0]
+(80)bster_testbench.ram.s_axi_rdata[127:0]
+(81)bster_testbench.ram.s_axi_rdata[127:0]
+(82)bster_testbench.ram.s_axi_rdata[127:0]
+(83)bster_testbench.ram.s_axi_rdata[127:0]
+(84)bster_testbench.ram.s_axi_rdata[127:0]
+(85)bster_testbench.ram.s_axi_rdata[127:0]
+(86)bster_testbench.ram.s_axi_rdata[127:0]
+(87)bster_testbench.ram.s_axi_rdata[127:0]
+(88)bster_testbench.ram.s_axi_rdata[127:0]
+(89)bster_testbench.ram.s_axi_rdata[127:0]
+(90)bster_testbench.ram.s_axi_rdata[127:0]
+(91)bster_testbench.ram.s_axi_rdata[127:0]
+(92)bster_testbench.ram.s_axi_rdata[127:0]
+(93)bster_testbench.ram.s_axi_rdata[127:0]
+(94)bster_testbench.ram.s_axi_rdata[127:0]
+(95)bster_testbench.ram.s_axi_rdata[127:0]
+(96)bster_testbench.ram.s_axi_rdata[127:0]
+(97)bster_testbench.ram.s_axi_rdata[127:0]
+(98)bster_testbench.ram.s_axi_rdata[127:0]
+(99)bster_testbench.ram.s_axi_rdata[127:0]
+(100)bster_testbench.ram.s_axi_rdata[127:0]
+(101)bster_testbench.ram.s_axi_rdata[127:0]
+(102)bster_testbench.ram.s_axi_rdata[127:0]
+(103)bster_testbench.ram.s_axi_rdata[127:0]
+(104)bster_testbench.ram.s_axi_rdata[127:0]
+(105)bster_testbench.ram.s_axi_rdata[127:0]
+(106)bster_testbench.ram.s_axi_rdata[127:0]
+(107)bster_testbench.ram.s_axi_rdata[127:0]
+(108)bster_testbench.ram.s_axi_rdata[127:0]
+(109)bster_testbench.ram.s_axi_rdata[127:0]
+(110)bster_testbench.ram.s_axi_rdata[127:0]
+(111)bster_testbench.ram.s_axi_rdata[127:0]
+(112)bster_testbench.ram.s_axi_rdata[127:0]
+(113)bster_testbench.ram.s_axi_rdata[127:0]
+(114)bster_testbench.ram.s_axi_rdata[127:0]
+(115)bster_testbench.ram.s_axi_rdata[127:0]
+(116)bster_testbench.ram.s_axi_rdata[127:0]
+(117)bster_testbench.ram.s_axi_rdata[127:0]
+(118)bster_testbench.ram.s_axi_rdata[127:0]
+(119)bster_testbench.ram.s_axi_rdata[127:0]
+(120)bster_testbench.ram.s_axi_rdata[127:0]
+(121)bster_testbench.ram.s_axi_rdata[127:0]
+(122)bster_testbench.ram.s_axi_rdata[127:0]
+(123)bster_testbench.ram.s_axi_rdata[127:0]
+(124)bster_testbench.ram.s_axi_rdata[127:0]
+(125)bster_testbench.ram.s_axi_rdata[127:0]
+(126)bster_testbench.ram.s_axi_rdata[127:0]
+(127)bster_testbench.ram.s_axi_rdata[127:0]
+@1401200
+-group_end
 @28
 bster_testbench.ram.s_axi_rvalid
 bster_testbench.ram.s_axi_rready
 bster_testbench.ram.s_axi_rresp[1:0]
-@1000200
+@1401200
 -RAM
+@1000200
 -tb
 [pattern_trace] 1
 [pattern_trace] 0

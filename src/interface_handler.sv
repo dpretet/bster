@@ -25,26 +25,34 @@ module interface_handler
         output wire                        cpl_tvalid,
         input  wire                        cpl_tready,
         output wire [     AXI4S_WIDTH-1:0] cpl_tdata,
-        // Command interface
-        output wire                        itf_valid,
-        input  wire                        itf_ready,
-        output wire [                 7:0] itf_cmd ,
-        output wire [     TOKEN_WIDTH-1:0] itf_token,
-        output wire [   PAYLOAD_WIDTH-1:0] itf_data
+        // Command interface to engine
+        output wire                        req_valid,
+        input  wire                        req_ready,
+        output wire [                 7:0] req_cmd,
+        output wire [     TOKEN_WIDTH-1:0] req_token,
+        output wire [   PAYLOAD_WIDTH-1:0] req_data,
+        // Completion interface from engine 
+        input  wire                        cpl_valid,
+        output wire                        cpl_ready,
+        input  wire [   PAYLOAD_WIDTH-1:0] cpl_data,
+        input  wire                        cpl_status
     );
 
     // Extract command and payload
-    assign itf_valid = cmd_tvalid;
-    assign itf_cmd = cmd_tdata[AXI4S_WIDTH-1-8+:8];
-    assign itf_token = cmd_tdata[0+:TOKEN_WIDTH];
-    assign itf_data = cmd_tdata[TOKEN_WIDTH+:PAYLOAD_WIDTH];
+    assign req_valid = cmd_tvalid;
+    assign req_cmd = cmd_tdata[AXI4S_WIDTH-1-8+:8];
+    assign req_token = cmd_tdata[0+:TOKEN_WIDTH];
+    assign req_data = cmd_tdata[TOKEN_WIDTH+:PAYLOAD_WIDTH];
 
     // Enable the interface when out of reset
-    assign cmd_tready = itf_ready;
+    assign cmd_tready = req_ready;
 
     // Drive completion interface
-    assign cpl_tvalid = 1'b0;
-    assign cpl_tdata = {AXI4S_WIDTH{1'b0}};
+    assign cpl_tvalid = cpl_valid;
+    assign cpl_ready = cpl_tready;
+    assign cpl_tdata = {cpl_status,
+                        {AXI4S_WIDTH-1-PAYLOAD_WIDTH{1'b0}}, 
+                        cpl_data};
 
     // TODO: Manage un known command
     // and drive back an unsupported status

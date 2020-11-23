@@ -30,11 +30,16 @@ module bst_engine
         input  wire                        aclk,
         input  wire                        aresetn,
         // Command interface
-        input  wire                        itf_valid,
-        output wire                        itf_ready,
-        input  wire [                 7:0] itf_cmd,
-        input  wire [     TOKEN_WIDTH-1:0] itf_token,
-        input  wire [   PAYLOAD_WIDTH-1:0] itf_data,
+        input  wire                        req_valid,
+        output wire                        req_ready,
+        input  wire [                 7:0] req_cmd,
+        input  wire [     TOKEN_WIDTH-1:0] req_token,
+        input  wire [   PAYLOAD_WIDTH-1:0] req_data,
+        // Completion interface
+        output wire                        cpl_valid,
+        input  wire                        cpl_ready,
+        output reg  [   PAYLOAD_WIDTH-1:0] cpl_data,
+        output reg                         cpl_status,
         // Tree manager access
         output wire                        tree_mgt_req_valid,
         input  wire                        tree_mgt_req_ready,
@@ -61,10 +66,12 @@ module bst_engine
     typedef enum logic[3:0] {
                             IDLE = 0,
                             INSERT_TOKEN = 1,
-                            WR_RAM = 2,
-                            RD_RAM = 3,
-                            WAIT_RAM_CPL = 4,
-                            FIND_EMPTY_PLACE = 5
+                            FIND_EMPTY_PLACE = 2,
+                            SEARCH_TOKEN = 3,
+                            COMPLETE_SEARCH = 4,
+                            WR_RAM = 5,
+                            RD_RAM = 6,
+                            WAIT_RAM_CPL = 7
     } ctrlr_states;
 
     // Central controller of the engine
@@ -97,11 +104,11 @@ module bst_engine
     logic [   TOKEN_WIDTH-1:0] rdnode_token;
     logic [             8-1:0] rdnode_info;
     // -------------------------------------------------------------------------
-    // Inputs from AXI4-stream interface issuing the commands
+    // AXI4-stream interface issuing the commands and returning the completion
     // -------------------------------------------------------------------------
 
     // Accept a new command only if IDLE and out of reset
-    assign itf_ready = ((fsm == IDLE /*&& fsm_stack == IDLE*/) &&
+    assign req_ready = ((fsm == IDLE /*&& fsm_stack == IDLE*/) &&
                             aresetn == 1'b1) ? 1'b1 : 1'b0;
 
     // Store commands' parameter and available address when activated
@@ -111,15 +118,19 @@ module bst_engine
             data_store <= {PAYLOAD_WIDTH{1'b0}};
             next_addr  <= {RAM_ADDR_WIDTH{1'b0}};
         end else begin
-            if (itf_valid && itf_ready) begin
-                token_store <= itf_token;
-                data_store <= itf_data;
+            if (req_valid && req_ready) begin
+                token_store <= req_token;
+                data_store <= req_data;
             end
-            if (itf_valid && itf_ready && ~tree_mgt_full) begin
+            if (req_valid && req_ready && ~tree_mgt_full) begin
                 next_addr <= tree_mgt_req_addr;
             end
         end
     end
+
+    assign cpl_valid = (fsm == COMPLETE_SEARCH);
+
+    // TODO: Manage completion when inserting, specially if failed
 
     // -------------------------------------------------------------------------
     // Data path to memory driver
@@ -159,7 +170,7 @@ module bst_engine
     // Memory requests to tree space manager
     // -------------------------------------------------------------------------
 
-    assign tree_mgt_req_valid = (itf_valid && itf_cmd == `INSERT_TOKEN &&
+    assign tree_mgt_req_valid = (req_valid && req_cmd == `INSERT_TOKEN &&
                                  fsm == IDLE && ~tree_mgt_full);
 
     assign tree_mgt_free_valid = 1'b0;
@@ -180,6 +191,8 @@ module bst_engine
             fsm_stack <= IDLE;
             place_found <= 2'b0;
             update_parent <= 1'b0;
+            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
+            cpl_status <= 1'b0;
         end else begin
 
             case (fsm)
@@ -190,10 +203,27 @@ module bst_engine
                     fsm_stack <= IDLE;
                     update_parent <= 1'b0;
                     place_found <= 2'b0;
+                    cpl_status <= 1'b0;
+
                     // Instruction 1: INSERT_TOKEN
-                    if (itf_valid && itf_cmd == `INSERT_TOKEN &&
+                    if (req_valid && req_cmd == `INSERT_TOKEN &&
                             ~tree_mgt_full) begin
                         fsm <= INSERT_TOKEN;
+                    end
+
+                    // Instruction 2: SEARCH_TOKEN
+                    if (req_valid && req_cmd == `SEARCH_TOKEN) begin
+                        // If root node is NULL, return an error
+                        if (~tree_ready) begin
+                            cpl_status <= 1'b1;
+                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
+                            fsm <= COMPLETE_SEARCH;
+                        end
+                        else begin
+                            addr <= ROOT_ADDR;
+                            fsm <= RD_RAM;
+                            fsm_stack <= SEARCH_TOKEN;
+                        end
                     end
 
                 end
@@ -315,6 +345,56 @@ module bst_engine
                         end
                     end
 
+                end
+
+                // Search engine for user to get a token information
+                // IDLE state start to search from root, we reach
+                // this state in it's read
+                SEARCH_TOKEN: begin
+                    // Here we found the token, then we return the payload
+                    if (token_store == rdnode_token) begin
+                        cpl_data <= rdnode_payload;
+                        cpl_status <= 1'b0;
+                        fsm <= COMPLETE_SEARCH;
+                    end
+                    // If not found, dive into the left branch stored
+                    // into the left child if value is smaller than node
+                    else if (token_store < rdnode_token) begin
+                        // If no left child exists, return an error
+                        if (~rdnode_has_left_child) begin
+                            cpl_status <= 1'b1;
+                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
+                            fsm <= COMPLETE_SEARCH;
+                        end
+                        // Else read left child
+                        else begin
+                            addr <= rdnode_left_child_addr;
+                            fsm <= RD_RAM;
+                            fsm_stack <= SEARCH_TOKEN;
+                        end
+                    end
+                    // If not found, dive into the right branch stored
+                    // into the right child if value is smaller than node
+                    else begin
+                        // If no right child exists, return an error
+                        if (~rdnode_has_right_child) begin
+                            cpl_status <= 1'b1;
+                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
+                            fsm <= COMPLETE_SEARCH;
+                        end
+                        // Else read right child
+                        else begin
+                            addr <= rdnode_right_child_addr;
+                            fsm <= RD_RAM;
+                            fsm_stack <= SEARCH_TOKEN;
+                        end
+                    end
+                end
+
+                // Deliver completion of a search request
+                COMPLETE_SEARCH : begin
+                    if (cpl_ready)
+                        fsm <= IDLE;
                 end
 
                 // Write state to handle node storage

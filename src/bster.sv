@@ -123,6 +123,9 @@ module bster
         `CHECKER(((TOKEN_WIDTH+PAYLOAD_WIDTH+8) > AXI4S_WIDTH), // 8 for command width
             "AXI4S interface must be wider to enclose command, token and payload");
 
+        `CHECKER((PAYLOAD_WIDTH+1) > AXI4S_WIDTH, 
+            "AXI4S completion must be greater than PAYLOAD_WIDTH + 1");
+
         `CHECKER((RAM_STRB_WIDTH != (RAM_DATA_WIDTH/8)),
             "RAM_STRB_WIDTH must be equal to RAM_DATA_WIDTH/8");
     end
@@ -132,11 +135,15 @@ module bster
     logic [      `CSR_WIDTH-1:0] csr_o;
     logic [      `CSR_WIDTH-1:0] csr_temp;
 
-    logic                        itf_valid;
-    logic                        itf_ready;
-    logic [                 7:0] itf_cmd;
-    logic [     TOKEN_WIDTH-1:0] itf_token;
-    logic [   PAYLOAD_WIDTH-1:0] itf_data;
+    logic                        req_valid;
+    logic                        req_ready;
+    logic [                 7:0] req_cmd;
+    logic [     TOKEN_WIDTH-1:0] req_token;
+    logic [   PAYLOAD_WIDTH-1:0] req_data;
+    logic                        cpl_valid;
+    logic                        cpl_ready;
+    logic [   PAYLOAD_WIDTH-1:0] cpl_data;
+    logic                        cpl_status;
 
     logic                        tree_mgt_req_valid;
     logic                        tree_mgt_req_ready;
@@ -202,7 +209,7 @@ module bster
         .PAYLOAD_WIDTH (PAYLOAD_WIDTH),
         .AXI4S_WIDTH   (AXI4S_WIDTH  )
     )
-    itf_inst
+    intf_inst
     (
         .aclk       (aclk      ),
         .aresetn    (aresetn   ),
@@ -212,11 +219,15 @@ module bster
         .cpl_tvalid (cpl_tvalid),
         .cpl_tready (cpl_tready),
         .cpl_tdata  (cpl_tdata ),
-        .itf_valid  (itf_valid ),
-        .itf_ready  (itf_ready ),
-        .itf_cmd    (itf_cmd   ),
-        .itf_token  (itf_token ),
-        .itf_data   (itf_data  )
+        .req_valid  (req_valid ),
+        .req_ready  (req_ready ),
+        .req_cmd    (req_cmd   ),
+        .req_token  (req_token ),
+        .req_data   (req_data  ),
+        .cpl_valid  (cpl_valid ),
+        .cpl_ready  (cpl_ready ),
+        .cpl_data   (cpl_data  ),
+        .cpl_status (cpl_status)
     );
 
     // BST engine managing the tree operations
@@ -233,11 +244,15 @@ module bster
     (
         .aclk                (aclk               ),
         .aresetn             (aresetn            ),
-        .itf_valid           (itf_valid          ),
-        .itf_ready           (itf_ready          ),
-        .itf_cmd             (itf_cmd            ),
-        .itf_token           (itf_token          ),
-        .itf_data            (itf_data           ),
+        .req_valid           (req_valid          ),
+        .req_ready           (req_ready          ),
+        .req_cmd             (req_cmd            ),
+        .req_token           (req_token          ),
+        .req_data            (req_data           ),
+        .cpl_valid           (cpl_valid          ),
+        .cpl_ready           (cpl_ready          ),
+        .cpl_data            (cpl_data           ),
+        .cpl_status          (cpl_status         ),
         .tree_mgt_req_valid  (tree_mgt_req_valid ),
         .tree_mgt_req_ready  (tree_mgt_req_ready ),
         .tree_mgt_req_addr   (tree_mgt_req_addr  ),
@@ -264,15 +279,15 @@ module bster
     )
     tree_space_manager_inst
     (
-        .aclk                (aclk                ),
-        .aresetn             (aresetn             ),
-        .tree_mgt_req_valid  (tree_mgt_req_valid  ),
-        .tree_mgt_req_ready  (tree_mgt_req_ready  ),
-        .tree_mgt_req_addr   (tree_mgt_req_addr   ),
-        .tree_mgt_free_valid (tree_mgt_free_valid ),
-        .tree_mgt_free_ready (tree_mgt_free_ready ),
-        .tree_mgt_free_addr  (tree_mgt_free_addr  ),
-        .tree_mgt_full       (tree_mgt_full       )
+        .aclk                (aclk               ),
+        .aresetn             (aresetn            ),
+        .tree_mgt_req_valid  (tree_mgt_req_valid ),
+        .tree_mgt_req_ready  (tree_mgt_req_ready ),
+        .tree_mgt_req_addr   (tree_mgt_req_addr  ),
+        .tree_mgt_free_valid (tree_mgt_free_valid),
+        .tree_mgt_free_ready (tree_mgt_free_ready),
+        .tree_mgt_free_addr  (tree_mgt_free_addr ),
+        .tree_mgt_full       (tree_mgt_full      )
     );
 
     // Memory driver managing the AXI4 interface to

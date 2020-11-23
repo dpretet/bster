@@ -26,8 +26,8 @@ integer cpl_timer = 0;
 //
 task command(
     input integer cmd,
-    input integer token,
-    input integer data=0
+    input [TOKEN_WIDTH-1:0] token,
+    input [PAYLOAD_WIDTH-1:0] data=0
 );
 
     `ifdef VERBOSE
@@ -66,18 +66,19 @@ endtask
 //     - None
 //
 // Return:
-//     - the BSTer command's completion (status, payload, info, ...)
+//     - the BSTer command's completion (status, payload)
 //     - Support a timeout and drive an SVUT `ERROR
 //
 task completion(
-    output integer cpl
+    output [AXI4S_WIDTH-1:0] cpl
 );
 
-    cpl_tready = 1'b1;
+    @(posedge aclk);
 
     for (cpl_timer=0;cpl_timer<`TIMEOUT;cpl_timer=cpl_timer+1) begin
         // Break the loop if commmand is acknowledged
         if (cpl_tvalid) begin
+            cpl_tready = 1'b1;
             cpl = cpl_tdata;
             cpl_timer = `TIMEOUT+10;
         end
