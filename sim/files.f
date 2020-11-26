@@ -9,6 +9,9 @@
 ../deps/async_fifo/src/vlog/wptr_full.v
 ../src/bster.sv
 ../src/bst_engine.sv
+../src/insert_engine.sv
+../src/search_engine.sv
+../src/delete_engine.sv
 ../src/csr.sv
 ../src/interface_handler.sv
 ../src/tree_space_manager.sv

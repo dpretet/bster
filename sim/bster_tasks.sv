@@ -43,7 +43,7 @@ task command(
     for (cmd_timer=0;cmd_timer<`TIMEOUT;cmd_timer=cmd_timer+1) begin
         // Break the loop if commmand is acknowledged
         if (cmd_tready)
-            cmd_timer = `TIMEOUT+10;
+            cmd_timer = `TIMEOUT+1;
         // Ensure we don't stay forever driving the interface
         if (cmd_timer == (`TIMEOUT-1))
             `ERROR("Reached timeout during command issue");
@@ -80,7 +80,7 @@ task completion(
         if (cpl_tvalid) begin
             cpl_tready = 1'b1;
             cpl = cpl_tdata;
-            cpl_timer = `TIMEOUT+10;
+            cpl_timer = `TIMEOUT+1;
         end
         // Ensure we don't stay forever driving the interface
         if (cpl_timer == (`TIMEOUT-1))

@@ -6,7 +6,7 @@
 - [Introduction](#Introduction)
 - [Commands](#Commands)
 - [Node Structure](#Node-Structure)
-- [Register map](#Register-Map)
+- [Register map](#Control-/-Status-Register-Map)
 - [Command Algorithms](#Command-Algorithms)
 
 
@@ -57,7 +57,7 @@ Spec:
 
 All commands are issued by the user on the AXI4S slave interface.
 
-All commands are coded over 8 bits
+All commands are coded over 8 bits.
 
 All commands' completion and status are driven on the AXI4S master interface by
 the IP core.
@@ -143,35 +143,30 @@ Both the interfaces use the same parameter (`AXI4S_WIDTH`) to be sized.
 
 ### Utility commands
 
-- Create tree
+- Check tree conformance
     - Opcode = 0x40
-    - Read root address and create a root node to build a tree
-    - Return status = 0 if successful, 1 if failed to access memory.
-
-- (Verify tree conformance) (TBD)
-    - Opcode = 0x41
     - Parse the tree and ensure it respects the binary tree paradigm.
     - Return 0 if tree conformal, 1 if not.
 
-- (Shallow copy tree) (TBD)
-    - Opcode = 0x42
-    - Reoder a non-conformal tree.
-    - Return 0 if tree conformal, 1 if not.
+- Shallow copy tree
+    - Opcode = 0x41
+    - Copy into a new memory place the tree
+    - Return 0 if operation is OK, 1 otherwse.
 
 - Get size of tree
-    - Opcode = 0x43
+    - Opcode = 0x42
     - Parse the tree and count the number of nodes.
     - If token specified, only discover its size, not the tree size.
     - Return the number of nodes.
 
 - Get depth of tree
-    - Opcode = 0x44
+    - Opcode = 0x43
     - Parse the tree and count the number of layers.
     - If token specified, only discover its depth, not the tree depth.
     - Return the number of layer.
 
 - Sort tree
-    - Opcode = 0x45
+    - Opcode = 0x44
     - Parse the tree and stream back its content, sorted from min to max value
     - Return an array like data stream.
 

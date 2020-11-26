@@ -32,13 +32,28 @@
 `define DELETE_CHILDREN 8'h32
 `define DELETE_LEFT_CHILD 8'h33
 `define DELETE_RIGHT_CHILD 8'h34
-`define CREATE_TREE 8'h40
-`define CHECK_TREE_IS_CONFORM 8'h41
-`define REORDER_TREE 8'h42
-`define GET_TREE_SIZE 8'h43
-`define GET_TREE_DEPTH 8'h44
+`define CHECK_TREE_CONFORMANCE 8'h40
+`define REORDER_TREE 8'h41
+`define GET_TREE_SIZE 8'h42
+`define GET_TREE_DEPTH 8'h43
 
+////////////////////////////
+// BST engines state machine
+////////////////////////////
 
+`define FSM_WIDTH 5
+
+typedef enum logic[`FSM_WIDTH-1:0] {
+    IDLE = 0,
+    INSERT_TOKEN = 1,
+    SEARCH_SLOT = 2,
+    SEARCH_TOKEN = 3,
+    DELETE_TOKEN = 4,
+    COMPLETION = 5,
+    WR_RAM = 6,
+    RD_RAM = 7,
+    WAIT_RAM_CPL = 8
+} engine_states;
 /////////////////////////////////////////////////////
 // Index and width of registers handled by csr module
 /////////////////////////////////////////////////////

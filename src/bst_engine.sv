@@ -7,9 +7,9 @@
 
 `include "bster_h.sv"
 
-// Engine managing the user request to operate over the tree. Rely on
+// Engine handling the user request to operate over the tree. Rely on
 // memory driver to access the AXI4 RAM and tree space manager to get and free
-// address
+// address and the different engines managing the request types
 
 module bst_engine
 
@@ -60,367 +60,222 @@ module bst_engine
         input  wire [  RAM_DATA_WIDTH-1:0] mem_rd_data
     );
 
-    // TODO: Get it from CSR or tree space manager
-    localparam [RAM_ADDR_WIDTH-1:0] ROOT_ADDR = {RAM_ADDR_WIDTH{1'b0}};
 
-    typedef enum logic[3:0] {
-                            IDLE = 0,
-                            INSERT_TOKEN = 1,
-                            FIND_EMPTY_PLACE = 2,
-                            SEARCH_TOKEN = 3,
-                            COMPLETE_SEARCH = 4,
-                            WR_RAM = 5,
-                            RD_RAM = 6,
-                            WAIT_RAM_CPL = 7
-    } ctrlr_states;
-
-    // Central controller of the engine
-    ctrlr_states fsm;
-    // Store the previous state as stack for branching in a processor
-    // to remember last operations. Usefull to avoid numerous "empty"
-    // states to handle the FSM transitions and next operations
-    ctrlr_states fsm_stack;
+    engine_states fsm_insert;
+    engine_states fsm_search;
+    engine_states fsm_delete;
 
     logic                      tree_ready;
-    logic [   TOKEN_WIDTH-1:0] token_store;
-    logic [ PAYLOAD_WIDTH-1:0] data_store;
+    logic                      engine_ready;
 
-    logic [RAM_ADDR_WIDTH-1:0] next_addr;
+    logic                      req_ready_insert;
+    logic                      req_ready_search;
+    logic                      req_ready_delete;
 
-    logic [RAM_ADDR_WIDTH-1:0] addr;
-    logic [RAM_ADDR_WIDTH-1:0] parent_addr;
-    logic [RAM_DATA_WIDTH-1:0] wrdata;
-    logic [RAM_DATA_WIDTH-1:0] rddata;
+    logic                      cpl_valid_insert;
+    logic [ PAYLOAD_WIDTH-1:0] cpl_data_insert;
+    logic                      cpl_status_insert;
+    logic                      cpl_valid_search;
+    logic [ PAYLOAD_WIDTH-1:0] cpl_data_search;
+    logic                      cpl_status_search;
+    logic                      cpl_valid_delete;
+    logic [ PAYLOAD_WIDTH-1:0] cpl_data_delete;
+    logic                      cpl_status_delete;
 
-    logic [               1:0] place_found;
-    logic                      update_parent;
+    logic                      mem_valid_insert;
+    logic                      mem_rd_insert;
+    logic                      mem_wr_insert;
+    logic [RAM_ADDR_WIDTH-1:0] mem_addr_insert;
+    logic [RAM_DATA_WIDTH-1:0] mem_wr_data_insert;
+    logic                      mem_rd_ready_insert;
 
-    logic [ PAYLOAD_WIDTH-1:0] rdnode_payload;
-    logic                      rdnode_has_right_child;
-    logic                      rdnode_has_left_child;
-    logic [RAM_ADDR_WIDTH-1:0] rdnode_right_child_addr;
-    logic [RAM_ADDR_WIDTH-1:0] rdnode_left_child_addr;
-    logic [RAM_ADDR_WIDTH-1:0] rdnode_parent_addr;
-    logic [   TOKEN_WIDTH-1:0] rdnode_token;
-    logic [             8-1:0] rdnode_info;
+    logic                      mem_valid_search;
+    logic                      mem_rd_search;
+    logic                      mem_wr_search;
+    logic [RAM_ADDR_WIDTH-1:0] mem_addr_search;
+    logic [RAM_DATA_WIDTH-1:0] mem_wr_data_search;
+    logic                      mem_rd_ready_search;
+
+    logic                      mem_valid_delete;
+    logic                      mem_rd_delete;
+    logic                      mem_wr_delete;
+    logic [RAM_ADDR_WIDTH-1:0] mem_addr_delete;
+    logic [RAM_DATA_WIDTH-1:0] mem_wr_data_delete;
+    logic                      mem_rd_ready_delete;
+
     // -------------------------------------------------------------------------
     // AXI4-stream interface issuing the commands and returning the completion
     // -------------------------------------------------------------------------
 
-    // Accept a new command only if IDLE and out of reset
-    assign req_ready = ((fsm == IDLE /*&& fsm_stack == IDLE*/) &&
-                            aresetn == 1'b1) ? 1'b1 : 1'b0;
+    // Accept a new command only if all FSM are IDLE
+    assign req_ready = (fsm_insert == IDLE && fsm_search == IDLE && fsm_delete == IDLE);
+    assign engine_ready = req_ready;
 
-    // Store commands' parameter and available address when activated
-    always @ (posedge aclk or negedge aresetn) begin
-        if (aresetn == 1'b0) begin
-            token_store <= {TOKEN_WIDTH{1'b0}};
-            data_store <= {PAYLOAD_WIDTH{1'b0}};
-            next_addr  <= {RAM_ADDR_WIDTH{1'b0}};
-        end else begin
-            if (req_valid && req_ready) begin
-                token_store <= req_token;
-                data_store <= req_data;
-            end
-            if (req_valid && req_ready && ~tree_mgt_full) begin
-                next_addr <= tree_mgt_req_addr;
-            end
-        end
-    end
+    assign cpl_valid = (fsm_insert == COMPLETION) ? cpl_valid_insert :
+                       (fsm_search == COMPLETION) ? cpl_valid_search :
+                       (fsm_delete == COMPLETION) ? cpl_valid_delete : 1'b0;
 
-    assign cpl_valid = (fsm == COMPLETE_SEARCH);
+    assign cpl_data = (fsm_insert == COMPLETION) ? cpl_data_insert :
+                      (fsm_search == COMPLETION) ? cpl_data_search :
+                      (fsm_delete == COMPLETION) ? cpl_data_delete : 1'b0;
 
-    // TODO: Manage completion when inserting, specially if failed
+    assign cpl_status = (fsm_insert == COMPLETION) ? cpl_status_insert :
+                        (fsm_search == COMPLETION) ? cpl_status_search :
+                        (fsm_delete == COMPLETION) ? cpl_status_delete : 1'b0;
 
     // -------------------------------------------------------------------------
     // Data path to memory driver
     // -------------------------------------------------------------------------
 
-    assign mem_valid = (fsm == WR_RAM || fsm == RD_RAM);
-    assign mem_wr = (fsm == WR_RAM);
-    assign mem_rd = (fsm == RD_RAM);
-    assign mem_addr = addr;
-    assign mem_wr_data = wrdata;
-    assign mem_rd_ready = (fsm == WAIT_RAM_CPL);
+    assign mem_valid = (fsm_insert == WR_RAM ||
+                        fsm_insert == RD_RAM ||
+                        fsm_search == WR_RAM ||
+                        fsm_search == RD_RAM ||
+                        fsm_delete == WR_RAM ||
+                        fsm_delete == RD_RAM
+                       );
 
-    // In charge of data storage coming from the RAM
-    always @ (posedge aclk or negedge aresetn) begin
-        if (~aresetn) begin
-            rddata <= {RAM_DATA_WIDTH{1'b0}};
-        end else begin
-            if (mem_rd_valid && mem_rd_ready)
-                rddata <= mem_rd_data;
-        end
-    end
+    assign mem_wr = (fsm_insert == WR_RAM ||
+                     fsm_delete == WR_RAM
+                    );
 
-    // Local split of the different node fields to read
-    // easier the code and waveform
-    assign {rdnode_payload,
-            rdnode_left_child_addr,
-            rdnode_right_child_addr,
-            rdnode_parent_addr,
-            rdnode_token,
-            rdnode_info
-           } = rddata;
+    assign mem_rd = (fsm_insert == RD_RAM ||
+                     fsm_search == RD_RAM ||
+                     fsm_delete == RD_RAM
+                    );
 
-    assign rdnode_has_left_child = rdnode_info[1];
-    assign rdnode_has_right_child = rdnode_info[0];
+    assign mem_addr = (fsm_insert == WR_RAM || fsm_insert == RD_RAM) ? mem_addr_insert:
+                      (fsm_search == WR_RAM || fsm_search == RD_RAM) ? mem_addr_search:
+                      (fsm_delete == WR_RAM || fsm_delete == RD_RAM) ? mem_addr_delete:
+                                                                       {RAM_ADDR_WIDTH{1'b0}};
 
-    // -------------------------------------------------------------------------
-    // Memory requests to tree space manager
-    // -------------------------------------------------------------------------
+    assign mem_wr_data = (fsm_insert == WR_RAM ) ? mem_wr_data_insert:
+                         (fsm_search == WR_RAM ) ? mem_wr_data_search:
+                         (fsm_delete == WR_RAM ) ? mem_wr_data_delete:
+                                                   {RAM_DATA_WIDTH{1'b0}};
 
-    assign tree_mgt_req_valid = (req_valid && req_cmd == `INSERT_TOKEN &&
-                                 fsm == IDLE && ~tree_mgt_full);
+    assign mem_rd_ready = (fsm_insert == WAIT_RAM_CPL ||
+                           fsm_search == WAIT_RAM_CPL ||
+                           fsm_delete == WAIT_RAM_CPL
+                          );
 
-    assign tree_mgt_free_valid = 1'b0;
-    assign tree_mgt_free_addr = {RAM_ADDR_WIDTH{1'b0}};
 
-    // -------------------------------------------------------------------------
-    // Main FSM managing the user requests
-    // -------------------------------------------------------------------------
+    insert_engine
+    #(
+    .TOKEN_WIDTH    (TOKEN_WIDTH),
+    .PAYLOAD_WIDTH  (PAYLOAD_WIDTH),
+    .RAM_DATA_WIDTH (RAM_DATA_WIDTH),
+    .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
+    .RAM_STRB_WIDTH (RAM_STRB_WIDTH),
+    .RAM_ID_WIDTH   (RAM_ID_WIDTH)
+    )
+    insert_engine_inst
+    (
+    .aclk                (aclk               ),
+    .aresetn             (aresetn            ),
+    .tree_ready          (tree_ready         ),
+    .engine_ready        (engine_ready       ),
+    .fsm_state           (fsm_insert         ),
+    .req_valid           (req_valid          ),
+    .req_ready           (req_ready_insert   ),
+    .req_cmd             (req_cmd            ),
+    .req_token           (req_token          ),
+    .req_data            (req_data           ),
+    .cpl_valid           (cpl_valid_insert   ),
+    .cpl_ready           (cpl_ready          ),
+    .cpl_data            (cpl_data_insert    ),
+    .cpl_status          (cpl_status_insert  ),
+    .tree_mgt_req_valid  (tree_mgt_req_valid ),
+    .tree_mgt_req_ready  (tree_mgt_req_ready ),
+    .tree_mgt_req_addr   (tree_mgt_req_addr  ),
+    .tree_mgt_full       (tree_mgt_full      ),
+    .mem_valid           (mem_valid_insert   ),
+    .mem_ready           (mem_ready          ),
+    .mem_rd              (mem_rd_insert      ),
+    .mem_wr              (mem_wr_insert      ),
+    .mem_addr            (mem_addr_insert    ),
+    .mem_wr_data         (mem_wr_data_insert ),
+    .mem_rd_valid        (mem_rd_valid       ),
+    .mem_rd_ready        (mem_rd_ready_insert),
+    .mem_rd_data         (mem_rd_data        )
+    );
 
-    always @ (posedge aclk or negedge aresetn) begin
 
-        if (aresetn == 1'b0) begin
-            addr <= {RAM_ADDR_WIDTH{1'b0}};
-            parent_addr <= {RAM_ADDR_WIDTH{1'b0}};
-            wrdata <= {RAM_DATA_WIDTH{1'b0}};
-            tree_ready <= 1'b0;
-            fsm <= IDLE;
-            fsm_stack <= IDLE;
-            place_found <= 2'b0;
-            update_parent <= 1'b0;
-            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-            cpl_status <= 1'b0;
-        end else begin
+    search_engine
+    #(
+    .TOKEN_WIDTH    (TOKEN_WIDTH),
+    .PAYLOAD_WIDTH  (PAYLOAD_WIDTH),
+    .RAM_DATA_WIDTH (RAM_DATA_WIDTH),
+    .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
+    .RAM_STRB_WIDTH (RAM_STRB_WIDTH),
+    .RAM_ID_WIDTH   (RAM_ID_WIDTH)
+    )
+    search_engine_inst
+    (
+    .aclk                (aclk               ),
+    .aresetn             (aresetn            ),
+    .tree_ready          (tree_ready         ),
+    .engine_ready        (engine_ready       ),
+    .fsm_state           (fsm_search         ),
+    .req_valid           (req_valid          ),
+    .req_ready           (req_ready_search   ),
+    .req_cmd             (req_cmd            ),
+    .req_token           (req_token          ),
+    .req_data            (req_data           ),
+    .cpl_valid           (cpl_valid_search   ),
+    .cpl_ready           (cpl_ready          ),
+    .cpl_data            (cpl_data_search    ),
+    .cpl_status          (cpl_status_search  ),
+    .mem_valid           (mem_valid_search   ),
+    .mem_ready           (mem_ready          ),
+    .mem_rd              (mem_rd_search      ),
+    .mem_wr              (mem_wr_search      ),
+    .mem_addr            (mem_addr_search    ),
+    .mem_wr_data         (mem_wr_data_search ),
+    .mem_rd_valid        (mem_rd_valid       ),
+    .mem_rd_ready        (mem_rd_ready_search),
+    .mem_rd_data         (mem_rd_data        )
+    );
 
-            case (fsm)
 
-                // IDLE state, waiting for user requests
-                default: begin
-
-                    fsm_stack <= IDLE;
-                    update_parent <= 1'b0;
-                    place_found <= 2'b0;
-                    cpl_status <= 1'b0;
-
-                    // Instruction 1: INSERT_TOKEN
-                    if (req_valid && req_cmd == `INSERT_TOKEN &&
-                            ~tree_mgt_full) begin
-                        fsm <= INSERT_TOKEN;
-                    end
-
-                    // Instruction 2: SEARCH_TOKEN
-                    if (req_valid && req_cmd == `SEARCH_TOKEN) begin
-                        // If root node is NULL, return an error
-                        if (~tree_ready) begin
-                            cpl_status <= 1'b1;
-                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-                            fsm <= COMPLETE_SEARCH;
-                        end
-                        else begin
-                            addr <= ROOT_ADDR;
-                            fsm <= RD_RAM;
-                            fsm_stack <= SEARCH_TOKEN;
-                        end
-                    end
-
-                end
-
-                // Central state to insert a new token
-                INSERT_TOKEN: begin
-
-                    // Tree is not yet ready, so first simply
-                    // write the new value as the root node.
-                    if (~tree_ready) begin
-
-                        wrdata <= {data_store,             // data payload
-                                   {RAM_ADDR_WIDTH{1'b0}}, // left child addr
-                                   {RAM_ADDR_WIDTH{1'b0}}, // right child addr
-                                   {RAM_ADDR_WIDTH{1'b0}}, // parent address
-                                   token_store,            // token
-                                   {
-                                      5'b0,                // reserved
-                                      1'b1,                // is root node
-                                      1'b0,                // has left child
-                                      1'b0                 // has right child
-                                   }
-                                  };
-
-                        tree_ready <= 1'b1;
-                        addr <= ROOT_ADDR;
-                        update_parent <= 1'b0;
-                        fsm <= WR_RAM;
-                        fsm_stack <= IDLE;
-                    end
-                    // A place has been found to insert a new node, but it
-                    // updates first the parent, thus avoid to read it
-                    // again. New node will store in the next phase.
-                    else if (update_parent && place_found[1]) begin
-
-                        wrdata <= {rdnode_payload,
-                                   (~place_found[0]) ? next_addr : rdnode_left_child_addr,
-                                   (place_found[0]) ? next_addr : rdnode_right_child_addr,
-                                   rdnode_parent_addr,
-                                   rdnode_token,
-                                   rdnode_info[7:2],
-                                   (~place_found[0]) ? 1'b1 : rdnode_info[1],
-                                   (place_found[0]) ? 1'b1 : rdnode_info[0]
-                                  };
-
-                        addr <= parent_addr;
-                        update_parent <= 1'b0;
-                        fsm <= WR_RAM;
-                        fsm_stack <= INSERT_TOKEN;
-
-                    end
-                    // After parent has been updated by the new child info,
-                    // write the child in the tree
-                    else if (place_found[1]) begin
-
-                        wrdata <= {data_store,
-                                   {RAM_ADDR_WIDTH{1'b0}},
-                                   {RAM_ADDR_WIDTH{1'b0}},
-                                   parent_addr,
-                                   token_store,
-                                   8'b0
-                                  };
-
-                        addr <= next_addr;
-                        update_parent <= 1'b0;
-                        fsm <= WR_RAM;
-                        fsm_stack <= IDLE;
-                    end
-                    // Start to dive into the tree, starting from the
-                    // root node to find a place for the new token
-                    else begin
-                        addr <= ROOT_ADDR;
-                        fsm <= RD_RAM;
-                        fsm_stack <= FIND_EMPTY_PLACE;
-                    end
-                end
-
-                // Search engine for insert token instruction
-                FIND_EMPTY_PLACE: begin
-
-                    // Is smaller than node's token
-                    if (token_store <= rdnode_token) begin
-                        // If has a left child, continue to search
-                        // across its branch
-                        if (rdnode_has_left_child) begin
-                            addr <= rdnode_left_child_addr;
-                            update_parent <= 1'b0;
-                            place_found <= 2'b0;
-                            fsm <= RD_RAM;
-                            fsm_stack <= FIND_EMPTY_PLACE;
-                        end
-                        // Else use this slot for the new token
-                        else begin
-                            // Bit1=1: place found, Bit0=0: on left child
-                            place_found <= 2'b10;
-                            update_parent <= 1'b1;
-                            parent_addr <= addr;
-                            fsm <= INSERT_TOKEN;
-                        end
-                    end
-                    // Is bigger than node's token
-                    else if (token_store > rdnode_token) begin
-                        // If has a right child, continue to search
-                        // across its branch
-                        if (rdnode_has_right_child) begin
-                            addr <= rdnode_right_child_addr;
-                            update_parent <= 1'b0;
-                            place_found <= 2'b0;
-                            fsm <= RD_RAM;
-                            fsm_stack <= FIND_EMPTY_PLACE;
-                        end
-                        // Else use this slot for the new token
-                        else begin
-                            // Bit1=1: place found, Bit0=1: on right child
-                            place_found <= 2'b11;
-                            update_parent <= 1'b1;
-                            parent_addr <= addr;
-                            fsm <= INSERT_TOKEN;
-                        end
-                    end
-
-                end
-
-                // Search engine for user to get a token information
-                // IDLE state start to search from root, we reach
-                // this state in it's read
-                SEARCH_TOKEN: begin
-                    // Here we found the token, then we return the payload
-                    if (token_store == rdnode_token) begin
-                        cpl_data <= rdnode_payload;
-                        cpl_status <= 1'b0;
-                        fsm <= COMPLETE_SEARCH;
-                    end
-                    // If not found, dive into the left branch stored
-                    // into the left child if value is smaller than node
-                    else if (token_store < rdnode_token) begin
-                        // If no left child exists, return an error
-                        if (~rdnode_has_left_child) begin
-                            cpl_status <= 1'b1;
-                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-                            fsm <= COMPLETE_SEARCH;
-                        end
-                        // Else read left child
-                        else begin
-                            addr <= rdnode_left_child_addr;
-                            fsm <= RD_RAM;
-                            fsm_stack <= SEARCH_TOKEN;
-                        end
-                    end
-                    // If not found, dive into the right branch stored
-                    // into the right child if value is smaller than node
-                    else begin
-                        // If no right child exists, return an error
-                        if (~rdnode_has_right_child) begin
-                            cpl_status <= 1'b1;
-                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-                            fsm <= COMPLETE_SEARCH;
-                        end
-                        // Else read right child
-                        else begin
-                            addr <= rdnode_right_child_addr;
-                            fsm <= RD_RAM;
-                            fsm_stack <= SEARCH_TOKEN;
-                        end
-                    end
-                end
-
-                // Deliver completion of a search request
-                COMPLETE_SEARCH : begin
-                    if (cpl_ready)
-                        fsm <= IDLE;
-                end
-
-                // Write state to handle node storage
-                // Once written, move to the state defined in the stack
-                // by the operation which specified it
-                WR_RAM: begin
-                    if (mem_ready)
-                        fsm <= fsm_stack;
-                end
-
-                // Read stage handling node read
-                RD_RAM: begin
-                    if (mem_ready)
-                        fsm <= WAIT_RAM_CPL;
-                end
-
-                // Once read, move to the state defined in the stack
-                // by the operation which specified it
-                WAIT_RAM_CPL: begin
-                    if (mem_rd_valid)
-                        fsm <= fsm_stack;
-                end
-
-            endcase
-        end
-    end
+    delete_engine
+    #(
+    .TOKEN_WIDTH    (TOKEN_WIDTH),
+    .PAYLOAD_WIDTH  (PAYLOAD_WIDTH),
+    .RAM_DATA_WIDTH (RAM_DATA_WIDTH),
+    .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
+    .RAM_STRB_WIDTH (RAM_STRB_WIDTH),
+    .RAM_ID_WIDTH   (RAM_ID_WIDTH)
+    )
+    delete_engine_inst
+    (
+    .aclk                (aclk               ),
+    .aresetn             (aresetn            ),
+    .tree_ready          (tree_ready         ),
+    .engine_ready        (engine_ready       ),
+    .fsm_state           (fsm_delete         ),
+    .req_valid           (req_valid          ),
+    .req_ready           (req_ready_delete   ),
+    .req_cmd             (req_cmd            ),
+    .req_token           (req_token          ),
+    .req_data            (req_data           ),
+    .cpl_valid           (cpl_valid_delete   ),
+    .cpl_ready           (cpl_ready          ),
+    .cpl_data            (cpl_data_delete    ),
+    .cpl_status          (cpl_status_delete  ),
+    .tree_mgt_free_valid (tree_mgt_free_valid),
+    .tree_mgt_free_ready (tree_mgt_free_ready),
+    .tree_mgt_free_addr  (tree_mgt_free_addr ),
+    .mem_valid           (mem_valid_delete   ),
+    .mem_ready           (mem_ready          ),
+    .mem_rd              (mem_rd_delete      ),
+    .mem_wr              (mem_wr_delete      ),
+    .mem_addr            (mem_addr_delete    ),
+    .mem_wr_data         (mem_wr_data_delete ),
+    .mem_rd_valid        (mem_rd_valid       ),
+    .mem_rd_ready        (mem_rd_ready_delete),
+    .mem_rd_data         (mem_rd_data        )
+    );
 
 endmodule
 
