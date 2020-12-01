@@ -1,63 +1,65 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Wed Nov 25 20:34:32 2020
+[*] Thu Dec 10 12:30:00 2020
 [*]
 [dumpfile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.vcd"
-[dumpfile_mtime] "Wed Nov 25 20:25:58 2020"
-[dumpfile_size] 755810
+[dumpfile_mtime] "Wed Dec  9 21:12:43 2020"
+[dumpfile_size] 997882
 [savefile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.gtkw"
-[timestart] 0
-[size] 1440 900
-[pos] -1 -1
-*-19.573713 161130 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 5031200
+[size] 1981 1234
+[pos] 278 50
+*-14.518447 5047000 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] bster_testbench.
 [treeopen] bster_testbench.dut.
 [treeopen] bster_testbench.dut.bst_engine_inst.
 [sst_width] 243
-[signals_width] 511
+[signals_width] 568
 [sst_expanded] 1
-[sst_vpaned_height] 351
+[sst_vpaned_height] 820
 @c00200
 -interface
 @28
 bster_testbench.dut.intf_inst.aclk
 bster_testbench.dut.intf_inst.aresetn
-bster_testbench.dut.intf_inst.cmd_tvalid
-bster_testbench.dut.intf_inst.cmd_tready
-@22
-bster_testbench.dut.intf_inst.cmd_tdata[127:0]
-bster_testbench.dut.intf_inst.cpl_data[31:0]
-@28
-bster_testbench.dut.intf_inst.cpl_ready
-bster_testbench.dut.intf_inst.cpl_status
-@22
-bster_testbench.dut.intf_inst.cpl_tdata[127:0]
-@28
-bster_testbench.dut.intf_inst.cpl_tready
-bster_testbench.dut.intf_inst.cpl_tvalid
-bster_testbench.dut.intf_inst.cpl_valid
-@22
-bster_testbench.dut.intf_inst.req_cmd[7:0]
-bster_testbench.dut.intf_inst.req_data[31:0]
-@28
+bster_testbench.dut.intf_inst.req_valid
 bster_testbench.dut.intf_inst.req_ready
 @22
+bster_testbench.dut.intf_inst.req_cmd[7:0]
 bster_testbench.dut.intf_inst.req_token[7:0]
+bster_testbench.dut.intf_inst.req_data[31:0]
+@200
+-
 @28
-bster_testbench.dut.intf_inst.req_valid
+bster_testbench.dut.intf_inst.cpl_valid
+bster_testbench.dut.intf_inst.cpl_ready
+@22
+bster_testbench.dut.intf_inst.cpl_data[31:0]
+@28
+bster_testbench.dut.intf_inst.cpl_status
+@200
+-
+@28
+bster_testbench.dut.intf_inst.cpl_tvalid
+bster_testbench.dut.intf_inst.cpl_tready
+@22
+bster_testbench.dut.intf_inst.cpl_tdata[127:0]
 @1401200
 -interface
-@c00200
+@800200
 -bst engine
 @28
 bster_testbench.dut.bst_engine_inst.aclk
 bster_testbench.dut.bst_engine_inst.aresetn
 @200
 -
+@28
+bster_testbench.dut.bst_engine_inst.req_valid
+bster_testbench.dut.bst_engine_inst.req_ready
 @22
-bster_testbench.dut.bst_engine_inst.fsm_insert[4:0]
-bster_testbench.dut.bst_engine_inst.fsm_search[4:0]
-bster_testbench.dut.bst_engine_inst.fsm_delete[4:0]
+bster_testbench.dut.bst_engine_inst.req_cmd[7:0]
+bster_testbench.dut.bst_engine_inst.req_token[7:0]
+bster_testbench.dut.bst_engine_inst.req_data[31:0]
 @200
 -
 @28
@@ -70,33 +72,26 @@ bster_testbench.dut.bst_engine_inst.cpl_status
 @200
 -
 @22
-bster_testbench.dut.bst_engine_inst.cpl_data_delete[31:0]
-bster_testbench.dut.bst_engine_inst.cpl_data_insert[31:0]
-bster_testbench.dut.bst_engine_inst.cpl_data_search[31:0]
-@28
-bster_testbench.dut.bst_engine_inst.cpl_status_delete
-bster_testbench.dut.bst_engine_inst.cpl_status_insert
-bster_testbench.dut.bst_engine_inst.cpl_status_search
-bster_testbench.dut.bst_engine_inst.cpl_valid_delete
-bster_testbench.dut.bst_engine_inst.cpl_valid_insert
-bster_testbench.dut.bst_engine_inst.cpl_valid_search
+bster_testbench.dut.bst_engine_inst.fsm_insert[4:0]
+bster_testbench.dut.bst_engine_inst.fsm_search[4:0]
+bster_testbench.dut.bst_engine_inst.fsm_delete[4:0]
 @200
 -
 @28
-bster_testbench.dut.bst_engine_inst.req_valid
-bster_testbench.dut.bst_engine_inst.req_ready
+bster_testbench.dut.bst_engine_inst.mem_valid
+bster_testbench.dut.bst_engine_inst.mem_ready
+bster_testbench.dut.bst_engine_inst.mem_wr
+bster_testbench.dut.bst_engine_inst.mem_rd
 @22
-bster_testbench.dut.bst_engine_inst.req_cmd[7:0]
-bster_testbench.dut.bst_engine_inst.req_data[31:0]
+bster_testbench.dut.bst_engine_inst.mem_addr[15:0]
+bster_testbench.dut.bst_engine_inst.mem_wr_data[127:0]
+bster_testbench.dut.bst_engine_inst.mem_rd_data[127:0]
 @28
-bster_testbench.dut.bst_engine_inst.req_ready_delete
-bster_testbench.dut.bst_engine_inst.req_ready_insert
-bster_testbench.dut.bst_engine_inst.req_ready_search
-@22
-bster_testbench.dut.bst_engine_inst.req_token[7:0]
-@1401200
+bster_testbench.dut.bst_engine_inst.mem_rd_valid
+bster_testbench.dut.bst_engine_inst.mem_rd_ready
+@1000200
 -bst engine
-@800200
+@c00200
 -insert_engine
 @28
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.aclk
@@ -130,7 +125,7 @@ bster_testbench.dut.bst_engine_inst.insert_engine_inst.cpl_status
 @22
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.fsm[4:0]
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.fsm_stack[4:0]
-@29
+@28
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_ready
 @22
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.next_addr[15:0]
@@ -138,6 +133,8 @@ bster_testbench.dut.bst_engine_inst.insert_engine_inst.parent_addr[15:0]
 @28
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.place_found[1:0]
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.update_parent
+@22
+bster_testbench.dut.bst_engine_inst.insert_engine_inst.wrdata[127:0]
 @200
 -
 @28
@@ -176,7 +173,180 @@ bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_req_ready
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_req_addr[15:0]
 @28
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_full
-@1000200
+@1401200
 -insert_engine
+@c00200
+-search_engine
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.aclk
+bster_testbench.dut.bst_engine_inst.search_engine_inst.aresetn
+@200
+-
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.token_store[7:0]
+@200
+-
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.fsm[4:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.fsm_stack[4:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.addr[15:0]
+@200
+-
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_token[7:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_payload[31:0]
+@c00022
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+@28
+(0)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(1)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(2)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(3)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(4)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(5)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(6)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+(7)bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_info[7:0]
+@1401200
+-group_end
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_left_child_addr[15:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_left_child_addr[15:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_right_child_addr[15:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.rdnode_right_child_addr[15:0]
+@200
+-
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.req_valid
+bster_testbench.dut.bst_engine_inst.search_engine_inst.req_ready
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.req_cmd[7:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.req_token[7:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.req_data[31:0]
+@200
+-
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.internal_search
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_valid
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_ready
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_token[7:0]
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_cmd[7:0]
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_cpl_valid
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_cpl_addr[15:0]
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.search_cpl_status
+@200
+-
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.cpl_valid
+bster_testbench.dut.bst_engine_inst.search_engine_inst.cpl_ready
+@22
+bster_testbench.dut.bst_engine_inst.search_engine_inst.cpl_data[31:0]
+@28
+bster_testbench.dut.bst_engine_inst.search_engine_inst.cpl_status
+@1401200
+-search_engine
+@800200
+-delete engine
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.aclk
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.aresetn
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.req_valid
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.req_ready
+@22
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.req_cmd[7:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.req_token[7:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.req_data[31:0]
+@200
+-
+@22
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.fsm[4:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.fsm_stack[4:0]
+@200
+-
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_valid
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_ready
+@22
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_cmd[7:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_token[7:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_cpl_addr[15:0]
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_cpl_valid
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_cpl_status
+@200
+-
+@22
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_addr[15:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cmd[7:0]
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cpl_ready
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cpl_status
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cpl_valid
+@23
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_node[127:0]
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_ready
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_valid
+@200
+-
+@c00022
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+@28
+(0)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(1)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(2)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(3)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(4)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(5)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(6)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+(7)bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
+@1401200
+-group_end
+@22
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_token[7:0]
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_payload[31:0]
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.is_left_child
+@22
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_parent_addr[15:0]
+@200
+-
+@1000200
+-delete engine
+@c00200
+-tree space manager
+@28
+bster_testbench.dut.tree_space_manager_inst.aclk
+bster_testbench.dut.tree_space_manager_inst.aresetn
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_full
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_req_valid
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_req_ready
+@22
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_req_addr[15:0]
+@28
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_free_valid
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_free_ready
+@22
+bster_testbench.dut.tree_space_manager_inst.tree_mgt_free_addr[15:0]
+@1401200
+-tree space manager
+@c00200
+-Memory Driver
+@28
+bster_testbench.dut.memory_driver_inst.mem_wr
+bster_testbench.dut.memory_driver_inst.mem_rd
+bster_testbench.dut.memory_driver_inst.mem_valid
+bster_testbench.dut.memory_driver_inst.mem_ready
+@22
+bster_testbench.dut.memory_driver_inst.mem_addr[15:0]
+bster_testbench.dut.memory_driver_inst.mem_rd_data[127:0]
+@28
+bster_testbench.dut.memory_driver_inst.mem_rd_valid
+bster_testbench.dut.memory_driver_inst.mem_rd_ready
+@1401200
+-Memory Driver
 [pattern_trace] 1
 [pattern_trace] 0

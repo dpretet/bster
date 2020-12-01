@@ -3,6 +3,4 @@
 *.vcd
 *.log
 tags
-TODO.md
-obj_dir
 obj_dir

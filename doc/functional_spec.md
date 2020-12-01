@@ -82,6 +82,11 @@ Both the interfaces use the same parameter (`AXI4S_WIDTH`) to be sized.
 
     (PAYLOAD_WIDTH+1) <= AXI4S_WIDTH
 
+Next sections describes the commands supported. Search token, insert token
+and delete token are native features of bster engine, the other are sequence
+of above one to unleash IP core capability and propose advance features to 
+operate on the tree.
+
 ### Search commands
 
 - Search token
@@ -177,7 +182,8 @@ Into BST engine, a node is read/write to memory on a single word. Follow a
 description from LSB to MSB of a node.
 
 - Information (8 bits)
-    - reserved (5 bits)
+    - reserved (4 bits)
+    - is left child (1 bit)
     - is root block (1 bit)
     - has left child (1 bit)
     - has right child (1 bit)

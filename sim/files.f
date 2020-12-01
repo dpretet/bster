@@ -18,4 +18,5 @@
 ../src/memory_driver.sv
 ../src/axi_ram.sv
 +define+VERBOSE
++define+BSTER_LOGGER
 +define+TIMEOUT=1000

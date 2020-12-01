@@ -32,7 +32,7 @@ module tree_space_manager
     end
 
     assign tree_mgt_req_ready = 1'b0;
-    assign tree_mgt_free_ready = 1'b0;
+    assign tree_mgt_free_ready = 1'b1;
     assign tree_mgt_full = 1'b0;
 
 endmodule

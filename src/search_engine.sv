@@ -43,6 +43,14 @@ module search_engine
         input  wire                        cpl_ready,
         output reg  [   PAYLOAD_WIDTH-1:0] cpl_data,
         output reg                         cpl_status,
+        // serves a search for other engines
+        input  wire                        search_valid,
+        output wire                        search_ready,
+        input  wire [                 7:0] search_cmd,
+        input  wire [     TOKEN_WIDTH-1:0] search_token,
+        output reg  [  RAM_ADDR_WIDTH-1:0] search_cpl_addr,
+        output wire                        search_cpl_valid,
+        output wire                        search_cpl_status,
         // Memory driver
         output wire                        mem_valid,
         input  wire                        mem_ready,
@@ -65,19 +73,17 @@ module search_engine
     // states to handle the FSM transitions and next operations
     engine_states fsm_stack;
 
-    logic [             8-1:0] cmd_store;
     logic [   TOKEN_WIDTH-1:0] token_store;
-    logic [ PAYLOAD_WIDTH-1:0] data_store;
 
     logic [RAM_ADDR_WIDTH-1:0] next_addr;
 
     logic [RAM_ADDR_WIDTH-1:0] addr;
-    logic [RAM_ADDR_WIDTH-1:0] parent_addr;
-    logic [RAM_DATA_WIDTH-1:0] wrdata;
     logic [RAM_DATA_WIDTH-1:0] rddata;
 
-    logic [               1:0] place_found;
-    logic                      update_parent;
+    logic [RAM_ADDR_WIDTH-1:0] cpl;
+
+    logic                      status;
+    logic                      internal_search;
 
     logic [ PAYLOAD_WIDTH-1:0] rdnode_payload;
     logic                      rdnode_has_right_child;
@@ -93,24 +99,27 @@ module search_engine
 
     // Accept a new command only if IDLE and out of reset
     assign req_ready = (fsm == IDLE && aresetn == 1'b1) ? 1'b1 : 1'b0;
+    assign search_ready = req_ready;
 
     // Store commands' parameter and available address when activated
     always @ (posedge aclk or negedge aresetn) begin
         if (aresetn == 1'b0) begin
-            cmd_store <= 8'b0;
             token_store <= {TOKEN_WIDTH{1'b0}};
-            data_store <= {PAYLOAD_WIDTH{1'b0}};
         end else begin
             if (req_valid && req_ready) begin
-                cmd_store <= req_cmd;
                 token_store <= req_token;
-                data_store <= req_data;
+            end
+            else if (search_valid && search_ready) begin
+                token_store <= search_token;
             end
         end
     end
 
-    // TODO: Return completion when inserting, specially if failed
-    assign cpl_valid = (fsm == COMPLETION);
+    assign cpl_valid = (fsm == REQ_COMPLETION && ~internal_search);
+    assign search_cpl_valid = (fsm == REQ_COMPLETION && internal_search);
+
+    assign cpl_status = status;
+    assign search_cpl_status = status;
 
     // Inform the parent about its state for switching correctly interfaces
     // to memory and tree space manager
@@ -124,7 +133,7 @@ module search_engine
     assign mem_wr = 1'b0;
     assign mem_rd = (fsm == RD_RAM);
     assign mem_addr = addr;
-    assign mem_wr_data = wrdata;
+    assign mem_wr_data = {RAM_DATA_WIDTH{1'b0}};
     assign mem_rd_ready = (fsm == WAIT_RAM_CPL);
 
     // In charge of data storage coming from the RAM
@@ -158,14 +167,11 @@ module search_engine
 
         if (aresetn == 1'b0) begin
             addr <= {RAM_ADDR_WIDTH{1'b0}};
-            parent_addr <= {RAM_ADDR_WIDTH{1'b0}};
-            wrdata <= {RAM_DATA_WIDTH{1'b0}};
             fsm <= IDLE;
             fsm_stack <= IDLE;
-            place_found <= 2'b0;
-            update_parent <= 1'b0;
             cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-            cpl_status <= 1'b0;
+            status <= 1'b0;
+            internal_search <= 1'b0;
         end else begin
 
             case (fsm)
@@ -174,17 +180,25 @@ module search_engine
                 default: begin
 
                     fsm_stack <= IDLE;
-                    update_parent <= 1'b0;
-                    place_found <= 2'b0;
-                    cpl_status <= 1'b0;
+                    status <= 1'b0;
 
-                    // Instruction 1: SEARCH_TOKEN
-                    if (req_valid && req_cmd == `SEARCH_TOKEN && engine_ready) begin
+                    // Serves as search engine for insert or delete
+                    // engines.
+                    if (search_valid) begin
+                        addr <= ROOT_ADDR;
+                        fsm <= RD_RAM;
+                        fsm_stack <= SEARCH_TOKEN;
+                        internal_search <= 1'b1;
+                    end
+
+                    // SEARCH_TOKEN instruction
+                    else if (req_valid && 
+                             req_cmd == `SEARCH_TOKEN && engine_ready) begin
                         // If root node is NULL, return an error
                         if (~tree_ready) begin
-                            cpl_status <= 1'b1;
-                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-                            fsm <= COMPLETION;
+                            status <= 1'b1;
+                            cpl <= {PAYLOAD_WIDTH{1'b0}};
+                            fsm <= REQ_COMPLETION;
                         end
                         else begin
                             addr <= ROOT_ADDR;
@@ -195,7 +209,6 @@ module search_engine
 
                 end
 
-
                 // Search engine for insert token instruction
                 SEARCH_SLOT: begin
 
@@ -205,18 +218,13 @@ module search_engine
                         // across its branch
                         if (rdnode_has_left_child) begin
                             addr <= rdnode_left_child_addr;
-                            update_parent <= 1'b0;
-                            place_found <= 2'b0;
                             fsm <= RD_RAM;
                             fsm_stack <= SEARCH_SLOT;
                         end
                         // Else use this slot for the new token
                         else begin
                             // Bit1=1: place found, Bit0=0: on left child
-                            place_found <= 2'b10;
-                            update_parent <= 1'b1;
-                            parent_addr <= addr;
-                            fsm <= COMPLETION;
+                            fsm <= REQ_COMPLETION;
                         end
                     end
                     // Is bigger than node's token
@@ -225,18 +233,13 @@ module search_engine
                         // across its branch
                         if (rdnode_has_right_child) begin
                             addr <= rdnode_right_child_addr;
-                            update_parent <= 1'b0;
-                            place_found <= 2'b0;
                             fsm <= RD_RAM;
                             fsm_stack <= SEARCH_SLOT;
                         end
                         // Else use this slot for the new token
                         else begin
                             // Bit1=1: place found, Bit0=1: on right child
-                            place_found <= 2'b11;
-                            update_parent <= 1'b1;
-                            parent_addr <= addr;
-                            fsm <= COMPLETION;
+                            fsm <= REQ_COMPLETION;
                         end
                     end
 
@@ -249,17 +252,18 @@ module search_engine
                     // Here we found the token, then we return the payload
                     if (token_store == rdnode_token) begin
                         cpl_data <= rdnode_payload;
-                        cpl_status <= 1'b0;
-                        fsm <= COMPLETION;
+                        search_cpl_addr <= addr;
+                        status <= 1'b0;
+                        fsm <= REQ_COMPLETION;
                     end
                     // If not found, dive into the left branch stored
                     // into the left child if value is smaller than node
                     else if (token_store < rdnode_token) begin
                         // If no left child exists, return an error
                         if (~rdnode_has_left_child) begin
-                            cpl_status <= 1'b1;
-                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-                            fsm <= COMPLETION;
+                            status <= 1'b1;
+                            cpl <= {PAYLOAD_WIDTH{1'b0}};
+                            fsm <= REQ_COMPLETION;
                         end
                         // Else read left child
                         else begin
@@ -273,9 +277,9 @@ module search_engine
                     else begin
                         // If no right child exists, return an error
                         if (~rdnode_has_right_child) begin
-                            cpl_status <= 1'b1;
-                            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
-                            fsm <= COMPLETION;
+                            status <= 1'b1;
+                            cpl <= {PAYLOAD_WIDTH{1'b0}};
+                            fsm <= REQ_COMPLETION;
                         end
                         // Else read right child
                         else begin
@@ -287,8 +291,13 @@ module search_engine
                 end
 
                 // Deliver completion of a search or delete request
-                COMPLETION : begin
-                    if (cpl_ready)
+                REQ_COMPLETION : begin
+
+                    if (internal_search) begin
+                        internal_search <= 1'b0;
+                        fsm <= IDLE;
+                    end
+                    else if (cpl_ready)
                         fsm <= IDLE;
                 end
 

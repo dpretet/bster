@@ -73,7 +73,7 @@ task completion(
     output [AXI4S_WIDTH-1:0] cpl
 );
 
-    @(posedge aclk);
+    @(negedge aclk);
 
     for (cpl_timer=0;cpl_timer<`TIMEOUT;cpl_timer=cpl_timer+1) begin
         // Break the loop if commmand is acknowledged
@@ -85,7 +85,7 @@ task completion(
         // Ensure we don't stay forever driving the interface
         if (cpl_timer == (`TIMEOUT-1))
             `ERROR("Reached timeout when reading completion");
-        @(posedge aclk);
+        @(negedge aclk);
     end
 
     cpl_tready = 1'b0;

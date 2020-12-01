@@ -43,10 +43,27 @@ module delete_engine
         input  wire                        cpl_ready,
         output reg  [   PAYLOAD_WIDTH-1:0] cpl_data,
         output reg                         cpl_status,
+        // request a search from dedicated engine
+        output reg                         search_valid,
+        input  wire                        search_ready,
+        output reg  [                 7:0] search_cmd,
+        output reg  [     TOKEN_WIDTH-1:0] search_token,
+        input  wire [  RAM_ADDR_WIDTH-1:0] search_cpl_addr,
+        input  wire                        search_cpl_valid,
+        input  wire                        search_cpl_status,
+        // request an insert from dedicated engine
+        output reg                         insert_valid,
+        input  wire                        insert_ready,
+        output reg  [                 7:0] insert_cmd,
+        output reg  [  RAM_DATA_WIDTH-1:0] insert_node,
+        output reg  [  RAM_ADDR_WIDTH-1:0] insert_addr,
+        input  wire                        insert_cpl_valid,
+        output wire                        insert_cpl_ready,
+        input  wire                        insert_cpl_status,
         // Tree manager access
         output wire                        tree_mgt_free_valid,
         input  wire                        tree_mgt_free_ready,
-        output wire [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr,
+        output reg  [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr,
         // Memory driver
         output wire                        mem_valid,
         input  wire                        mem_ready,
@@ -59,8 +76,13 @@ module delete_engine
         input  wire [  RAM_DATA_WIDTH-1:0] mem_rd_data
     );
 
-    // TODO: Get it from CSR or tree space manager
-    localparam [RAM_ADDR_WIDTH-1:0] ROOT_ADDR = {RAM_ADDR_WIDTH{1'b0}};
+    //-------------------------------------------
+    // TODO: mark tree as not ready if root
+    // node is deleted and doesn't store children
+    //-------------------------------------------
+    // TODO: support tree is ready even if root
+    // is deleted but owns children
+    //-------------------------------------------
 
     // Central controller of the engine
     engine_states fsm;
@@ -69,18 +91,20 @@ module delete_engine
     // states to handle the FSM transitions and next operations
     engine_states fsm_stack;
 
-    logic [             8-1:0] cmd_store;
-    logic [   TOKEN_WIDTH-1:0] token_store;
-    logic [ PAYLOAD_WIDTH-1:0] data_store;
-
-    logic [RAM_ADDR_WIDTH-1:0] addr;
+    // Internals to store info during processing
+    logic [RAM_ADDR_WIDTH-1:0] token_addr;
+    logic [RAM_ADDR_WIDTH-1:0] child_addr;
     logic [RAM_ADDR_WIDTH-1:0] parent_addr;
+    logic [RAM_ADDR_WIDTH-1:0] right_child_addr;
+    logic [               1:0] nb_child;
+    logic                      is_left_child;
+
+    // Memory interface signals
+    logic [RAM_ADDR_WIDTH-1:0] addr;
     logic [RAM_DATA_WIDTH-1:0] wrdata;
     logic [RAM_DATA_WIDTH-1:0] rddata;
 
-    logic [               1:0] place_found;
-    logic                      update_parent;
-
+    // To store the read node content
     logic [ PAYLOAD_WIDTH-1:0] rdnode_payload;
     logic                      rdnode_has_right_child;
     logic                      rdnode_has_left_child;
@@ -89,33 +113,21 @@ module delete_engine
     logic [RAM_ADDR_WIDTH-1:0] rdnode_parent_addr;
     logic [   TOKEN_WIDTH-1:0] rdnode_token;
     logic [             8-1:0] rdnode_info;
+
     // -------------------------------------------------------------------------
     // AXI4-stream interface issuing the commands and returning the completion
     // -------------------------------------------------------------------------
 
     // Accept a new command only if IDLE and out of reset
-    assign req_ready = ((fsm == IDLE /*&& fsm_stack == IDLE*/) &&
-                            aresetn == 1'b1) ? 1'b1 : 1'b0;
+    assign req_ready = ((fsm == IDLE) && aresetn == 1'b1) ? 1'b1 : 1'b0;
 
-    // Store commands' parameter and available address when activated
-    always @ (posedge aclk or negedge aresetn) begin
-        if (aresetn == 1'b0) begin
-            cmd_store <= 8'b0;
-            token_store <= {TOKEN_WIDTH{1'b0}};
-            data_store <= {PAYLOAD_WIDTH{1'b0}};
-        end else begin
-            if (req_valid && req_ready) begin
-                cmd_store <= req_cmd;
-                token_store <= req_token;
-                data_store <= req_data;
-            end
-        end
-    end
+    // Complete request once all deletion/allocation is over
+    assign cpl_valid = (fsm == REQ_COMPLETION);
 
-    // TODO: Return completion when inserting, specially if failed
-    assign cpl_valid = (fsm == COMPLETION);
+    // Accept insert completion anyway
+    assign insert_cpl_ready = (fsm == INSERT_TOKEN);
 
-    // Inform the parent about its state for switching correctly interfaces
+    // Inform the parent about its state to switch correctly interfaces
     // to memory and tree space manager
     assign fsm_state = fsm;
 
@@ -157,8 +169,7 @@ module delete_engine
     // Memory requests to tree space manager
     // -------------------------------------------------------------------------
 
-    assign tree_mgt_free_valid = 1'b0;
-    assign tree_mgt_free_addr = {RAM_ADDR_WIDTH{1'b0}};
+    assign tree_mgt_free_valid = (fsm == FREE_ADDR);
 
     // -------------------------------------------------------------------------
     // Main FSM managing the user requests
@@ -168,14 +179,25 @@ module delete_engine
 
         if (aresetn == 1'b0) begin
             addr <= {RAM_ADDR_WIDTH{1'b0}};
+            child_addr <= {RAM_ADDR_WIDTH{1'b0}};
+            tree_mgt_free_addr <= {RAM_ADDR_WIDTH{1'b0}};
             parent_addr <= {RAM_ADDR_WIDTH{1'b0}};
+            right_child_addr <= {RAM_ADDR_WIDTH{1'b0}};
             wrdata <= {RAM_DATA_WIDTH{1'b0}};
             fsm <= IDLE;
             fsm_stack <= IDLE;
-            place_found <= 2'b0;
-            update_parent <= 1'b0;
+            nb_child <= 2'b0;
             cpl_data <= {PAYLOAD_WIDTH{1'b0}};
             cpl_status <= 1'b0;
+            search_valid <= 1'b0;
+            search_cmd <= 8'b0;
+            search_token <= {TOKEN_WIDTH{1'b0}};
+            token_addr <= {RAM_ADDR_WIDTH{1'b0}};
+            insert_addr <= {RAM_ADDR_WIDTH{1'b0}};
+            is_left_child <= 1'b0;
+            insert_cmd <= 8'b0;
+            insert_node <= {RAM_DATA_WIDTH{1'b0}};
+            insert_valid <= 1'b0;
         end else begin
 
             case (fsm)
@@ -184,22 +206,208 @@ module delete_engine
                 default: begin
 
                     fsm_stack <= IDLE;
-                    update_parent <= 1'b0;
-                    place_found <= 2'b0;
+                    nb_child <= 2'b0;
                     cpl_status <= 1'b0;
+                    is_left_child <= 1'b0;
 
-                    // Instruction 1: INSERT_TOKEN
-                    if (req_valid && req_cmd == `DELETE_TOKEN && tree_ready) begin
-                        fsm <= DELETE_TOKEN;
+                    // Instruction DELETE_TOKEN
+                    if (req_valid && engine_ready &&
+                        req_cmd == `DELETE_TOKEN) begin
+                        // Complete request with an error if tree
+                        // is null
+                        if (~tree_ready) begin
+                            cpl_status <= 1'b1;
+                            fsm <= REQ_COMPLETION;
+                        end
+                        // Else go to search for the token content
+                        else begin
+                            fsm <= SEARCH_TOKEN;
+                            search_valid <= 1'b1;
+                            search_cmd <= `SEARCH_TOKEN;
+                            search_token <= req_token;
+                        end
                     end
                 end
 
-                DELETE_TOKEN : begin
+                // Manage search token request to search engine, initiates
+                // the request and wait for completion.
+                SEARCH_TOKEN: begin
+
+                    // Initiate a search and wait for its accepted
+                    if (search_ready)
+                        search_valid <= 1'b0;
+
+                    // Once found, ech if cpl is ok or not
+                    if (search_cpl_valid) begin
+                        // Complete request with an error if
+                        // token has not been found
+                        if (search_cpl_status) begin
+                            cpl_status <= 1'b1;
+                            fsm <= REQ_COMPLETION;
+                        end
+                        // If found, move to read the node
+                        // and move then to deletion
+                        else begin
+                            token_addr <= search_cpl_addr;
+                            addr <= search_cpl_addr;
+                            fsm <= RD_RAM;
+                            fsm_stack <= DELETE_TOKEN;
+                        end
+                    end
 
                 end
 
-                // Deliver completion of a search or delete request
-                COMPLETION : begin
+                // Central place to initiate a deletion. Enter here after it
+                // initiated a search with search engine.  When entering,
+                // node is already read and we can start the deletion
+                DELETE_TOKEN : begin
+
+                    // Store this information to avoid address comparaisons
+                    // when update parent node info
+                    is_left_child <= rdnode_info[3];
+
+                    // If node is a leaf, just free the address and
+                    // update the parent information
+                    if (rdnode_info[1:0] == 2'b0) begin
+                        addr <= rdnode_parent_addr;
+                        tree_mgt_free_addr <= addr;
+                        nb_child <= 2'b0;
+                        fsm <= RD_RAM;
+                        fsm_stack <= UPDATE_PARENT;
+                    end
+                    // If only owns a single child, append this child node on
+                    // parent and free the token address
+                    else if (rdnode_info[1:0] == 2'b01 || 
+                                rdnode_info[1:0] == 2'b10) begin
+                        is_left_child <= rdnode_info[3];
+                        child_addr <= (rdnode_has_left_child) ?
+                                            rdnode_left_child_addr :
+                                            rdnode_right_child_addr;
+                        tree_mgt_free_addr <= addr;
+                        addr <= rdnode_parent_addr;
+                        nb_child <= 2'b01;
+                        fsm <= RD_RAM;
+                        fsm_stack <= UPDATE_PARENT;
+                    end
+                    // If node owns two children, the node content will be
+                    // replaced by left child, which will be freed and right
+                    // child will be attached on a slot of the left child
+                    else begin
+                        // Left child slot will be freed and copy in 
+                        // place of parent
+                        tree_mgt_free_addr <= rdnode_left_child_addr;
+                        // Rigth child will be updated laster
+                        right_child_addr <= rdnode_right_child_addr;
+                        // Parent address used later to overwrite the existing
+                        // parent field of left child
+                        parent_addr <= rdnode_parent_addr;
+                        addr <= rdnode_left_child_addr;
+                        nb_child <= 2'b11;
+                        // Read first the left child before parent overwriting
+                        fsm <= RD_RAM;
+                        fsm_stack <= UPDATE_PARENT;
+                    end
+                end
+
+                // In charge to update the parent wth the deleted child info
+                // if the node to delete is not a leaf. We substitute the
+                // node to delete with its child.
+                UPDATE_PARENT: begin
+                    // When token to delete is a leaf, simply remove it from
+                    // parent before releasing the token
+                    if (nb_child == 2'b0) begin
+                        wrdata <= {rdnode_payload,
+                                   rdnode_left_child_addr,
+                                   rdnode_right_child_addr,
+                                   rdnode_parent_addr,
+                                   rdnode_token,
+                                   rdnode_info[7:2],
+                                   (is_left_child) ? 1'b0 : rdnode_info[1],
+                                   (~is_left_child) ? 1'b0 : rdnode_info[0]
+                                  };
+                        fsm <= WR_RAM;
+                        fsm_stack <= FREE_ADDR;
+                    end
+                    // If the token onws a child, overwrite it with its child
+                    // on parent node. We switch with is_left_child to avoid
+                    // comparaison in parent with its left/right children
+                    // addresses
+                    else if (nb_child == 2'b01) begin
+
+                        wrdata <= {rdnode_payload,
+                                   (is_left_child) ?
+                                        child_addr :
+                                        rdnode_left_child_addr,
+                                   (~is_left_child) ?
+                                        child_addr :
+                                        rdnode_right_child_addr,
+                                   rdnode_parent_addr,
+                                   rdnode_token,
+                                   rdnode_info
+                                  };
+                        fsm <= WR_RAM;
+                        fsm_stack <= FREE_ADDR;
+                    end
+                    // When the token owns two children, we replace it with 
+                    // the left child. No need to handle the parent, we'll
+                    // handle the right child only, and so save some cycles
+                    else begin
+                        addr <= parent_addr;
+                        wrdata <= rddata;
+                        fsm <= WR_RAM;
+                        fsm_stack <= READ_CHILD;
+                    end
+
+                end
+
+                // Intermediate state to read right child content
+                // before requesting a new insert in the tree
+                READ_CHILD: begin
+                    addr <= right_child_addr;
+                    fsm <= RD_RAM;
+                    fsm_stack <= INSERT_TOKEN;
+                end
+
+                // Request a slot to search engine and wait for the completion
+                INSERT_TOKEN: begin
+
+                    insert_node <= rddata;
+                    insert_addr <= right_child_addr;
+                    insert_cmd <= `INSERT_TOKEN;
+
+                    if (insert_valid == 1'b0 && insert_ready == 1'b1) begin
+                        insert_valid <= 1'b1;
+                    end
+                    else if (insert_valid && insert_ready) begin
+                        insert_valid <= 1'b0;
+                    end
+
+                    // Once found
+                    if (insert_cpl_valid) begin
+                        // Complete request with an error if
+                        // token has not been found
+                        if (insert_cpl_status) begin
+                            cpl_status <= 1'b1;
+                            fsm <= REQ_COMPLETION;
+                        end
+                        // Free the token and complete the request
+                        else begin
+                            fsm <= FREE_ADDR;
+                        end
+                    end
+                end
+
+                // Release the token address in the memory with the
+                // tree space manager.
+                FREE_ADDR: begin
+                    if (tree_mgt_free_ready) begin
+                        fsm <= REQ_COMPLETION;
+                    end
+                end
+
+                // Deliver completion of a search or delete request,
+                // handled by tree space manager
+                REQ_COMPLETION : begin
                     if (cpl_ready)
                         fsm <= IDLE;
                 end

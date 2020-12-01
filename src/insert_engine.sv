@@ -41,8 +41,16 @@ module insert_engine
         // Completion interface
         output wire                        cpl_valid,
         input  wire                        cpl_ready,
-        output reg  [   PAYLOAD_WIDTH-1:0] cpl_data,
+        output wire [   PAYLOAD_WIDTH-1:0] cpl_data,
         output reg                         cpl_status,
+        // serves a insert for other engines
+        input  wire                        insert_valid,
+        output wire                        insert_ready,
+        input  wire [                 7:0] insert_cmd,
+        input  wire [  RAM_DATA_WIDTH-1:0] insert_node,
+        input  wire [  RAM_ADDR_WIDTH-1:0] insert_addr,
+        output wire                        insert_cpl_valid,
+        output wire                        insert_cpl_status,
         // Tree manager access
         output wire                        tree_mgt_req_valid,
         input  wire                        tree_mgt_req_ready,
@@ -73,6 +81,7 @@ module insert_engine
     logic [             8-1:0] cmd_store;
     logic [   TOKEN_WIDTH-1:0] token_store;
     logic [ PAYLOAD_WIDTH-1:0] data_store;
+    logic [RAM_DATA_WIDTH-1:0] node_store;
 
     logic [RAM_ADDR_WIDTH-1:0] next_addr;
 
@@ -83,6 +92,7 @@ module insert_engine
 
     logic [               1:0] place_found;
     logic                      update_parent;
+    logic                      internal_insert;
 
     logic [ PAYLOAD_WIDTH-1:0] rdnode_payload;
     logic                      rdnode_has_right_child;
@@ -92,12 +102,20 @@ module insert_engine
     logic [RAM_ADDR_WIDTH-1:0] rdnode_parent_addr;
     logic [   TOKEN_WIDTH-1:0] rdnode_token;
     logic [             8-1:0] rdnode_info;
+
+    logic [ PAYLOAD_WIDTH-1:0] insnode_payload;
+    logic [RAM_ADDR_WIDTH-1:0] insnode_right_child_addr;
+    logic [RAM_ADDR_WIDTH-1:0] insnode_left_child_addr;
+    logic [RAM_ADDR_WIDTH-1:0] insnode_parent_addr;
+    logic [   TOKEN_WIDTH-1:0] insnode_token;
+    logic [             8-1:0] insnode_info;
     // -------------------------------------------------------------------------
     // AXI4-stream interface issuing the commands and returning the completion
     // -------------------------------------------------------------------------
 
     // Accept a new command only if IDLE and out of reset
     assign req_ready = (fsm == IDLE && aresetn == 1'b1) ? 1'b1 : 1'b0;
+    assign insert_ready = req_ready;
 
     // Store commands' parameter and available address when activated
     always @ (posedge aclk or negedge aresetn) begin
@@ -106,23 +124,44 @@ module insert_engine
             token_store <= {TOKEN_WIDTH{1'b0}};
             data_store <= {PAYLOAD_WIDTH{1'b0}};
             next_addr  <= {RAM_ADDR_WIDTH{1'b0}};
+            node_store <= {RAM_DATA_WIDTH{1'b0}};
         end else begin
+
             if (req_valid && req_ready) begin
                 cmd_store <= req_cmd;
                 token_store <= req_token;
                 data_store <= req_data;
             end
-            // FIXME: We request a memory token for each request, even if
-            // it's a search or a delete. Should be solved by splitting the FSM
-            // Insert FSM requests, Delete FSM frees
-            if (req_valid && req_ready && ~tree_mgt_full) begin
+            else if (insert_valid && insert_ready) begin
+                cmd_store <= insert_cmd;
+                token_store <= insert_node[8+:TOKEN_WIDTH];
+                node_store <= insert_node;
+            end
+
+            if (req_valid && req_ready &&
+                    req_cmd == `INSERT_TOKEN &&
+                    ~tree_mgt_full) begin
                 next_addr <= tree_mgt_req_addr;
             end
+            else if (insert_valid && insert_ready)
+                next_addr <= insert_addr;
         end
     end
 
-    // TODO: Return completion when inserting, specially if failed
-    assign cpl_valid = (fsm == COMPLETION);
+    // Local split to manage easily the token update process
+    assign {insnode_payload,
+            insnode_left_child_addr,
+            insnode_right_child_addr,
+            insnode_parent_addr,
+            insnode_token,
+            insnode_info
+           } = node_store;
+
+    assign cpl_valid = (fsm == REQ_COMPLETION && ~internal_insert);
+    assign cpl_data = {PAYLOAD_WIDTH{1'b0}};
+    assign insert_cpl_valid = (fsm == REQ_COMPLETION && internal_insert);
+    // TODO: Hnadle also wrong completion status
+    assign insert_cpl_status = 1'b0;
 
     // Inform the parent about its state for switching correctly interfaces
     // to memory and tree space manager
@@ -184,8 +223,8 @@ module insert_engine
             fsm_stack <= IDLE;
             place_found <= 2'b0;
             update_parent <= 1'b0;
-            cpl_data <= {PAYLOAD_WIDTH{1'b0}};
             cpl_status <= 1'b0;
+            internal_insert <= 1'b0;
         end else begin
 
             case (fsm)
@@ -197,9 +236,15 @@ module insert_engine
                     update_parent <= 1'b0;
                     place_found <= 2'b0;
                     cpl_status <= 1'b0;
+                    internal_insert <= 1'b0;
 
-                    // Instruction: INSERT_TOKEN
-                    if (req_valid && req_cmd == `INSERT_TOKEN &&
+                    // INSERT_TOKEN from delete engine
+                    if (insert_valid && insert_cmd == `INSERT_TOKEN) begin
+                        internal_insert <= 1'b1;
+                        fsm <= INSERT_TOKEN;
+                    end
+                    // INSERT_TOKEN from user request
+                    else if (req_valid && req_cmd == `INSERT_TOKEN &&
                             ~tree_mgt_full && engine_ready) begin
                         fsm <= INSERT_TOKEN;
                     end
@@ -219,7 +264,8 @@ module insert_engine
                                    {RAM_ADDR_WIDTH{1'b0}}, // parent address
                                    token_store,            // token
                                    {
-                                      5'b0,                // reserved
+                                      4'b0,                // reserved
+                                      1'b0,                // is left child 
                                       1'b1,                // is root node
                                       1'b0,                // has left child
                                       1'b0                 // has right child
@@ -230,7 +276,7 @@ module insert_engine
                         addr <= ROOT_ADDR;
                         update_parent <= 1'b0;
                         fsm <= WR_RAM;
-                        fsm_stack <= IDLE;
+                        fsm_stack <= REQ_COMPLETION;
                     end
                     // A place has been found to insert a new node, but it
                     // updates first the parent, thus avoid to read it
@@ -255,20 +301,45 @@ module insert_engine
                     end
                     // After parent has been updated by the new child info,
                     // write the child in the tree
-                    else if (place_found[1]) begin
+                    else if (place_found[1] && ~internal_insert) begin
 
                         wrdata <= {data_store,
                                    {RAM_ADDR_WIDTH{1'b0}},
                                    {RAM_ADDR_WIDTH{1'b0}},
                                    parent_addr,
                                    token_store,
-                                   8'b0
+                                   // Reserved
+                                   4'b0,
+                                   // is left child
+                                   ~place_found[0],
+                                   // is not root, has not left/right children
+                                   3'b0
                                   };
 
                         addr <= next_addr;
                         update_parent <= 1'b0;
                         fsm <= WR_RAM;
-                        fsm_stack <= IDLE;
+                        fsm_stack <= REQ_COMPLETION;
+                    end
+                    // After parent has been updated by the new child info,
+                    // update the node with the new parent address
+                    else if (place_found[1] && internal_insert) begin
+
+                        wrdata <= {// Original children address + payload
+                                   insnode_payload,
+                                   insnode_left_child_addr,
+                                   insnode_right_child_addr,
+                                   // New parent address
+                                   parent_addr,
+                                   // Original node info + token
+                                   insnode_token,
+                                   insnode_info
+                                   };
+
+                        addr <= next_addr;
+                        update_parent <= 1'b0;
+                        fsm <= WR_RAM;
+                        fsm_stack <= REQ_COMPLETION;
                     end
                     // Start to dive into the tree, starting from the
                     // root node to find a place for the new token
@@ -295,7 +366,7 @@ module insert_engine
                         end
                         // Else use this slot for the new token
                         else begin
-                            // Bit1=1: place found, Bit0=0: on left child
+                            // Bit1=1: place found, Bit0=0: on left slot
                             place_found <= 2'b10;
                             update_parent <= 1'b1;
                             parent_addr <= addr;
@@ -315,7 +386,7 @@ module insert_engine
                         end
                         // Else use this slot for the new token
                         else begin
-                            // Bit1=1: place found, Bit0=1: on right child
+                            // Bit1=1: place found, Bit0=1: on right slot
                             place_found <= 2'b11;
                             update_parent <= 1'b1;
                             parent_addr <= addr;
@@ -323,6 +394,13 @@ module insert_engine
                         end
                     end
 
+                end
+
+                // Deliver completion of a search or delete request,
+                // handled by tree space manager
+                REQ_COMPLETION : begin
+                    if (cpl_ready || internal_insert)
+                        fsm <= IDLE;
                 end
 
                 // Write state to handle node storage

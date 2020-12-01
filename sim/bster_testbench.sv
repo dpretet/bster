@@ -324,6 +324,7 @@ module bster_testbench();
     ///
     ///    - `LAST_STATUS: tied to 1 is last macro did experience a failure, else tied to 0
 
+    /*
     `UNIT_TEST("IDLE CHECK")
 
         `MSG("Check BSTer core is properly IDLE during and after reset");
@@ -424,6 +425,9 @@ module bster_testbench();
 
         `MSG("Give a try to issue an insert command");
         command(`INSERT_TOKEN, 0, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
 
     `UNIT_TEST_END
 
@@ -431,6 +435,9 @@ module bster_testbench();
 
         token = $urandom() % 32;
         command(`INSERT_TOKEN, 12, 24);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
 
     `UNIT_TEST_END
 
@@ -439,6 +446,9 @@ module bster_testbench();
         for (int i = 1; i <= 8; i=i+1) begin
             data = $urandom() % 4096;
             command(`INSERT_TOKEN, i, data);
+            completion(cpl);
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                    "don't expect an error status");
         end
 
     `UNIT_TEST_END
@@ -449,7 +459,7 @@ module bster_testbench();
             data = $urandom() % 4096;
             command(`SEARCH_TOKEN, i, data);
             completion(cpl);
-            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1, 
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
                     "expect an error because the tree is not initialized");
         end
 
@@ -460,11 +470,14 @@ module bster_testbench();
         for (int i = 1; i <= 8; i=i+1) begin
             data = $urandom() % 4096;
             command(`INSERT_TOKEN, i, data);
+            completion(cpl);
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                    "don't expect an error status");
             command(`SEARCH_TOKEN, i, 0);
             completion(cpl);
-            `ASSERT(cpl[PAYLOAD_WIDTH-1:0] == data, 
+            `ASSERT(cpl[PAYLOAD_WIDTH-1:0] == data,
                     "read data is not written data");
-            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0, 
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
                     "don't expect an error status");
         end
 
@@ -475,13 +488,173 @@ module bster_testbench();
         for (int i = 1; i <= 8; i=i+1) begin
             data = $urandom() % 4096;
             command(`INSERT_TOKEN, i, data);
+            completion(cpl);
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                    "don't expect an error status");
         end
         command(`SEARCH_TOKEN, 0, 0);
         completion(cpl);
-        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1, 
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
                 "expect an error while we search for a value not stored");
 
     `UNIT_TEST_END
+
+    `UNIT_TEST("Try to delete tokens in tree")
+
+        for (int i = 1; i <= 8; i=i+1) begin
+            command(`DELETE_TOKEN, i, 0);
+            completion(cpl);
+            `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                    "expect an error because the tree is not initialized");
+        end
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Insert leaf tokens then delete them")
+
+        // Insert first a root token
+        command(`INSERT_TOKEN, 10, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        command(`INSERT_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`DELETE_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`SEARCH_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "expect an error while we search for a value not stored");
+
+        command(`INSERT_TOKEN, 14, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`DELETE_TOKEN, 14, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`SEARCH_TOKEN, 14, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "expect an error while we search for a value not stored");
+
+        command(`INSERT_TOKEN, 8, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`DELETE_TOKEN, 8, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`SEARCH_TOKEN, 8, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "expect an error while we search for a value not stored");
+
+        command(`INSERT_TOKEN, 25, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`DELETE_TOKEN, 25, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`SEARCH_TOKEN, 25, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "expect an error while we search for a value not stored");
+
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Insert tokens and delete a owning a single child")
+
+        // Insert first a root token
+        command(`INSERT_TOKEN, 10, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Add a token, append a child then delete the token
+        command(`INSERT_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 14, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Delete the first layer, owning the leaf
+        command(`DELETE_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Then search the deleted token and the child
+        command(`SEARCH_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "expect an error while we search for a deleted value ");
+        command(`SEARCH_TOKEN, 14, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error, this child must still available");
+
+    `UNIT_TEST_END
+*/
+
+    `UNIT_TEST("Insert tokens and delete a node owning two children")
+
+        // Insert first a root token and a node with 2 children
+        command(`INSERT_TOKEN, 10, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 12, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 13, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Delete the first layer, owning the two children
+        command(`DELETE_TOKEN, 12, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Then search the deleted token and the children
+        command(`SEARCH_TOKEN, 12, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "Expect an error while this token has been deleted");
+        command(`SEARCH_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
+        command(`SEARCH_TOKEN, 13, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
+
+    `UNIT_TEST_END
+
+    // `UNIT_TEST("Create a tree then delete the root node")
+
+        // Check tree is not ready or ready
+
+    // `UNIT_TEST_END
 
     `TEST_SUITE_END
 

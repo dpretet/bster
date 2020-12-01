@@ -103,6 +103,22 @@ module bst_engine
     logic [RAM_DATA_WIDTH-1:0] mem_wr_data_delete;
     logic                      mem_rd_ready_delete;
 
+    logic                      search_valid;
+    logic                      search_ready;
+    logic [             8-1:0] search_cmd;
+    logic [   TOKEN_WIDTH-1:0] search_token;
+    logic [RAM_ADDR_WIDTH-1:0] search_cpl_addr;
+    logic                      search_cpl_valid;
+    logic                      search_cpl_status;
+
+    logic                      insert_valid;
+    logic                      insert_ready;
+    logic [               7:0] insert_cmd;
+    logic [RAM_DATA_WIDTH-1:0] insert_node;
+    logic [RAM_ADDR_WIDTH-1:0] insert_addr;
+    logic                      insert_cpl_valid;
+    logic                      insert_cpl_status;
+
     // -------------------------------------------------------------------------
     // AXI4-stream interface issuing the commands and returning the completion
     // -------------------------------------------------------------------------
@@ -111,17 +127,17 @@ module bst_engine
     assign req_ready = (fsm_insert == IDLE && fsm_search == IDLE && fsm_delete == IDLE);
     assign engine_ready = req_ready;
 
-    assign cpl_valid = (fsm_insert == COMPLETION) ? cpl_valid_insert :
-                       (fsm_search == COMPLETION) ? cpl_valid_search :
-                       (fsm_delete == COMPLETION) ? cpl_valid_delete : 1'b0;
+    assign cpl_valid = (fsm_insert == REQ_COMPLETION) ? cpl_valid_insert :
+                       (fsm_search == REQ_COMPLETION) ? cpl_valid_search :
+                       (fsm_delete == REQ_COMPLETION) ? cpl_valid_delete : 1'b0;
 
-    assign cpl_data = (fsm_insert == COMPLETION) ? cpl_data_insert :
-                      (fsm_search == COMPLETION) ? cpl_data_search :
-                      (fsm_delete == COMPLETION) ? cpl_data_delete : 1'b0;
+    assign cpl_data = (fsm_insert == REQ_COMPLETION) ? cpl_data_insert :
+                      (fsm_search == REQ_COMPLETION) ? cpl_data_search :
+                      (fsm_delete == REQ_COMPLETION) ? cpl_data_delete : 1'b0;
 
-    assign cpl_status = (fsm_insert == COMPLETION) ? cpl_status_insert :
-                        (fsm_search == COMPLETION) ? cpl_status_search :
-                        (fsm_delete == COMPLETION) ? cpl_status_delete : 1'b0;
+    assign cpl_status = (fsm_insert == REQ_COMPLETION) ? cpl_status_insert :
+                        (fsm_search == REQ_COMPLETION) ? cpl_status_search :
+                        (fsm_delete == REQ_COMPLETION) ? cpl_status_delete : 1'b0;
 
     // -------------------------------------------------------------------------
     // Data path to memory driver
@@ -185,6 +201,13 @@ module bst_engine
     .cpl_ready           (cpl_ready          ),
     .cpl_data            (cpl_data_insert    ),
     .cpl_status          (cpl_status_insert  ),
+    .insert_valid        (insert_valid       ),
+    .insert_ready        (insert_ready       ),
+    .insert_node         (insert_node        ),
+    .insert_cmd          (insert_cmd         ),
+    .insert_addr         (insert_addr        ),
+    .insert_cpl_valid    (insert_cpl_valid   ),
+    .insert_cpl_status   (insert_cpl_status  ),
     .tree_mgt_req_valid  (tree_mgt_req_valid ),
     .tree_mgt_req_ready  (tree_mgt_req_ready ),
     .tree_mgt_req_addr   (tree_mgt_req_addr  ),
@@ -226,6 +249,13 @@ module bst_engine
     .cpl_ready           (cpl_ready          ),
     .cpl_data            (cpl_data_search    ),
     .cpl_status          (cpl_status_search  ),
+    .search_valid        (search_valid       ),
+    .search_ready        (search_ready       ),
+    .search_cmd          (search_cmd         ),
+    .search_token        (search_token       ),
+    .search_cpl_addr     (search_cpl_addr    ),
+    .search_cpl_valid    (search_cpl_valid   ),
+    .search_cpl_status   (search_cpl_status  ),
     .mem_valid           (mem_valid_search   ),
     .mem_ready           (mem_ready          ),
     .mem_rd              (mem_rd_search      ),
@@ -263,6 +293,20 @@ module bst_engine
     .cpl_ready           (cpl_ready          ),
     .cpl_data            (cpl_data_delete    ),
     .cpl_status          (cpl_status_delete  ),
+    .search_valid        (search_valid       ),
+    .search_ready        (search_ready       ),
+    .search_token        (search_token       ),
+    .search_cmd          (search_cmd         ),
+    .search_cpl_addr     (search_cpl_addr    ),
+    .search_cpl_valid    (search_cpl_valid   ),
+    .search_cpl_status   (search_cpl_status  ),
+    .insert_valid        (insert_valid       ),
+    .insert_ready        (insert_ready       ),
+    .insert_node         (insert_node        ),
+    .insert_cmd          (insert_cmd         ),
+    .insert_addr         (insert_addr        ),
+    .insert_cpl_valid    (insert_cpl_valid   ),
+    .insert_cpl_status   (insert_cpl_status  ),
     .tree_mgt_free_valid (tree_mgt_free_valid),
     .tree_mgt_free_ready (tree_mgt_free_ready),
     .tree_mgt_free_addr  (tree_mgt_free_addr ),
@@ -276,6 +320,110 @@ module bst_engine
     .mem_rd_ready        (mem_rd_ready_delete),
     .mem_rd_data         (mem_rd_data        )
     );
+
+    `ifdef BSTER_LOGGER
+
+        engine_states fsm_insert_prev;
+        engine_states fsm_delete_prev;
+        engine_states fsm_search_prev;
+
+        integer log;
+        string fsm_state_str;
+        string cmd_str;
+        integer wrix;
+        integer rdix;
+        logic   aresetn_prev;
+
+        // Create the log skeleton
+        initial begin
+            // Write a log from scratch
+            log = $fopen("bster.log", "w");
+            $fclose(log);
+            // Write headers
+            `LOG_HEADER
+            // Log FSM default states
+            `LOG_FSM("Insert Engine", "IDLE");
+            `LOG_FSM("Search Engine", "IDLE");
+            `LOG_FSM("Delete Engine", "IDLE");
+        end
+
+        // Log reset assertion & deassertion
+        always @ (posedge aclk or negedge aresetn) begin
+
+            aresetn_prev <= aresetn;
+
+            if (aresetn == 1'b1 && aresetn_prev == 1'b0) begin
+                `LOG_RESET_DEASSERTION;
+                `LOG_HEADER
+            end
+            else if (aresetn == 1'b0 && aresetn_prev == 1'b1) begin
+                `LOG_RESET_ASSERTION;
+            end
+
+        end
+
+        // Log interface request
+        always @ (posedge aclk or negedge aresetn) begin
+            if (req_valid && req_ready) begin
+                `DEC_CMD(req_cmd);
+                `LOG_REQUEST(cmd_str, req_token, req_data);
+            end
+
+            if (cpl_valid && cpl_ready) begin
+                `LOG_COMPLETION(cpl_data, cpl_status);
+            end
+
+        end
+
+        // Log FSMs state when changing
+        always @ (posedge aclk or negedge aresetn) begin
+            if (aresetn == 1'b0) begin
+                fsm_insert_prev <= IDLE;
+                fsm_delete_prev <= IDLE;
+                fsm_search_prev <= IDLE;
+            end
+            else begin
+                fsm_insert_prev <= fsm_insert;
+                fsm_delete_prev <= fsm_delete;
+                fsm_search_prev <= fsm_search;
+            end
+
+            if (fsm_search != fsm_search_prev) begin
+                `DEC_FSM(fsm_search);
+                `LOG_FSM("Search Engine", fsm_state_str);
+            end
+            if (fsm_insert != fsm_insert_prev) begin
+                `DEC_FSM(fsm_insert);
+                `LOG_FSM("Insert Engine", fsm_state_str);
+            end
+            if (fsm_delete != fsm_delete_prev) begin
+                `DEC_FSM(fsm_delete);
+                `LOG_FSM("Delete Engine", fsm_state_str);
+            end
+
+        end
+
+        // Log memory access
+        always @ (posedge aclk or negedge aresetn) begin
+            if (mem_valid && mem_ready) begin
+                if (mem_wr) begin
+                    `LOG_MEM_WRITE(mem_addr, mem_wr_data);
+                end
+                else begin
+                    `LOG_MEM_READ(mem_addr);
+                end
+            end
+
+        end
+
+        // Log memory completion
+        always @ (posedge aclk or negedge aresetn) begin
+            if (mem_rd_valid && mem_rd_ready) begin
+                `LOG_MEM_COMPLETION(mem_rd_data);
+            end
+        end
+
+    `endif
 
 endmodule
 
