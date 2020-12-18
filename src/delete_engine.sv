@@ -300,7 +300,7 @@ module delete_engine
                         right_child_addr <= rdnode_right_child_addr;
                         // Parent address used later to overwrite the existing
                         // parent field of left child
-                        parent_addr <= rdnode_parent_addr;
+                        parent_addr <= token_addr;
                         addr <= rdnode_left_child_addr;
                         nb_child <= 2'b11;
                         // Read first the left child before parent overwriting

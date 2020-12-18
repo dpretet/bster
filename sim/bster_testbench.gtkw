@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Thu Dec 10 12:30:00 2020
+[*] Fri Dec 18 11:59:28 2020
 [*]
 [dumpfile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.vcd"
-[dumpfile_mtime] "Wed Dec  9 21:12:43 2020"
-[dumpfile_size] 997882
+[dumpfile_mtime] "Fri Dec 18 10:49:44 2020"
+[dumpfile_size] 164854
 [savefile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.gtkw"
-[timestart] 5031200
-[size] 1981 1234
-[pos] 278 50
-*-14.518447 5047000 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 385900
+[size] 1440 801
+[pos] -360 -64
+*-15.102551 557000 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] bster_testbench.
 [treeopen] bster_testbench.dut.
 [treeopen] bster_testbench.dut.bst_engine_inst.
 [sst_width] 243
-[signals_width] 568
+[signals_width] 511
 [sst_expanded] 1
-[sst_vpaned_height] 820
+[sst_vpaned_height] 516
 @c00200
 -interface
 @28
@@ -266,8 +266,9 @@ bster_testbench.dut.bst_engine_inst.delete_engine_inst.fsm[4:0]
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.fsm_stack[4:0]
 @200
 -
-@28
+@29
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_valid
+@28
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_ready
 @22
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_cmd[7:0]
@@ -285,7 +286,7 @@ bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cmd[7:0]
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cpl_ready
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cpl_status
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_cpl_valid
-@23
+@22
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_node[127:0]
 @28
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_ready

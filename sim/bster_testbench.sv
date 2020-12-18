@@ -324,7 +324,7 @@ module bster_testbench();
     ///
     ///    - `LAST_STATUS: tied to 1 is last macro did experience a failure, else tied to 0
 
-    /*
+/*
     `UNIT_TEST("IDLE CHECK")
 
         `MSG("Check BSTer core is properly IDLE during and after reset");
@@ -606,11 +606,88 @@ module bster_testbench();
                 "Don't expect an error, this child must still available");
 
     `UNIT_TEST_END
-*/
+    */
 
     `UNIT_TEST("Insert tokens and delete a node owning two children")
 
         // Insert first a root token and a node with 2 children
+        command(`INSERT_TOKEN, 10, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // insert a right branch to the root
+        command(`INSERT_TOKEN, 12, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 13, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // insert a left branch to the root
+        command(`INSERT_TOKEN, 2, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 1, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+        command(`INSERT_TOKEN, 3, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Delete the first layer, owning the two children
+        command(`DELETE_TOKEN, 12, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status after deletion");
+        command(`DELETE_TOKEN, 2, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status after deletion");
+
+        // Then search the deleted token and the children
+        command(`SEARCH_TOKEN, 12, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "Expect an error while this token has been deleted");
+        command(`SEARCH_TOKEN, 11, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
+        command(`SEARCH_TOKEN, 13, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
+
+        command(`SEARCH_TOKEN, 2, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
+                "Expect an error while this token has been deleted");
+        command(`SEARCH_TOKEN, 1, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
+        command(`SEARCH_TOKEN, 3, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
+
+    `UNIT_TEST_END
+
+/*
+    `UNIT_TEST("Create a tree then delete the root node")
+
+        // Create a tree, add root and children and check children
+        // are still here
         command(`INSERT_TOKEN, 10, 0);
         completion(cpl);
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
@@ -628,17 +705,17 @@ module bster_testbench();
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
                 "don't expect an error status");
 
-        // Delete the first layer, owning the two children
-        command(`DELETE_TOKEN, 12, 0);
+        // Delete the root node
+        command(`DELETE_TOKEN, 10, 0);
         completion(cpl);
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
                 "don't expect an error status");
 
-        // Then search the deleted token and the children
+        // Then search the children
         command(`SEARCH_TOKEN, 12, 0);
         completion(cpl);
-        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b1,
-                "Expect an error while this token has been deleted");
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "Don't expect an error while this child must be available");
         command(`SEARCH_TOKEN, 11, 0);
         completion(cpl);
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
@@ -647,15 +724,8 @@ module bster_testbench();
         completion(cpl);
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
                 "Don't expect an error while this child must be available");
-
     `UNIT_TEST_END
-
-    // `UNIT_TEST("Create a tree then delete the root node")
-
-        // Check tree is not ready or ready
-
-    // `UNIT_TEST_END
-
+*/
     `TEST_SUITE_END
 
 endmodule
