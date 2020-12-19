@@ -55,7 +55,6 @@ module insert_engine
         output wire                        tree_mgt_req_valid,
         input  wire                        tree_mgt_req_ready,
         input  wire [  RAM_ADDR_WIDTH-1:0] tree_mgt_req_addr,
-        input  wire                        tree_mgt_full,
         // Memory driver
         output wire                        mem_valid,
         input  wire                        mem_ready,
@@ -140,7 +139,7 @@ module insert_engine
 
             if (req_valid && req_ready &&
                     req_cmd == `INSERT_TOKEN &&
-                    ~tree_mgt_full) begin
+                    tree_mgt_req_ready) begin
                 next_addr <= tree_mgt_req_addr;
             end
             else if (insert_valid && insert_ready)
@@ -206,7 +205,7 @@ module insert_engine
     // -------------------------------------------------------------------------
 
     assign tree_mgt_req_valid = (req_valid && req_cmd == `INSERT_TOKEN &&
-                                 fsm == IDLE && ~tree_mgt_full);
+                                 fsm == IDLE && tree_mgt_req_ready);
 
     // -------------------------------------------------------------------------
     // Main FSM managing the user requests
@@ -245,7 +244,7 @@ module insert_engine
                     end
                     // INSERT_TOKEN from user request
                     else if (req_valid && req_cmd == `INSERT_TOKEN &&
-                            ~tree_mgt_full && engine_ready) begin
+                            tree_mgt_req_ready && engine_ready) begin
                         fsm <= INSERT_TOKEN;
                     end
 

@@ -151,7 +151,6 @@ module bster
     logic                        tree_mgt_free_valid;
     logic                        tree_mgt_free_ready;
     logic [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr;
-    logic                        tree_mgt_full;
 
     logic                        mem_valid;
     logic                        mem_ready;
@@ -259,7 +258,6 @@ module bster
         .tree_mgt_free_valid (tree_mgt_free_valid),
         .tree_mgt_free_ready (tree_mgt_free_ready),
         .tree_mgt_free_addr  (tree_mgt_free_addr ),
-        .tree_mgt_full       (tree_mgt_full      ),
         .mem_valid           (mem_valid          ),
         .mem_ready           (mem_ready          ),
         .mem_rd              (mem_rd             ),
@@ -286,8 +284,7 @@ module bster
         .tree_mgt_req_addr   (tree_mgt_req_addr  ),
         .tree_mgt_free_valid (tree_mgt_free_valid),
         .tree_mgt_free_ready (tree_mgt_free_ready),
-        .tree_mgt_free_addr  (tree_mgt_free_addr ),
-        .tree_mgt_full       (tree_mgt_full      )
+        .tree_mgt_free_addr  (tree_mgt_free_addr )
     );
 
     // Memory driver managing the AXI4 interface to

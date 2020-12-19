@@ -17,6 +17,8 @@
 ../src/tree_space_manager.sv
 ../src/memory_driver.sv
 ../src/axi_ram.sv
+../src/scfifo.v
+../src/scfifo_ram.sv
 +define+VERBOSE
 +define+BSTER_LOGGER
 +define+TIMEOUT=1000

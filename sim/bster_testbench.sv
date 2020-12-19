@@ -324,7 +324,6 @@ module bster_testbench();
     ///
     ///    - `LAST_STATUS: tied to 1 is last macro did experience a failure, else tied to 0
 
-/*
     `UNIT_TEST("IDLE CHECK")
 
         `MSG("Check BSTer core is properly IDLE during and after reset");
@@ -606,7 +605,6 @@ module bster_testbench();
                 "Don't expect an error, this child must still available");
 
     `UNIT_TEST_END
-    */
 
     `UNIT_TEST("Insert tokens and delete a node owning two children")
 

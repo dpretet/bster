@@ -47,7 +47,6 @@ module bst_engine
         output wire                        tree_mgt_free_valid,
         input  wire                        tree_mgt_free_ready,
         output wire [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr,
-        input  wire                        tree_mgt_full,
         // Memory driver
         output wire                        mem_valid,
         input  wire                        mem_ready,
@@ -211,7 +210,6 @@ module bst_engine
     .tree_mgt_req_valid  (tree_mgt_req_valid ),
     .tree_mgt_req_ready  (tree_mgt_req_ready ),
     .tree_mgt_req_addr   (tree_mgt_req_addr  ),
-    .tree_mgt_full       (tree_mgt_full      ),
     .mem_valid           (mem_valid_insert   ),
     .mem_ready           (mem_ready          ),
     .mem_rd              (mem_rd_insert      ),
