@@ -5,31 +5,18 @@
 - [ ] Describe algorithms with draws
 
 
-# DONE
-
-- [X] Add logger in the core. Print statement during code execution and grep
-      them with run.sh
-- [X] Support insert
-    - [X] can insert root node
-    - [X] can insert a token
-- [X] Support depth first search
-- [X] Provide completion for insert commands
-
 # DESIGN
 
-- [-] Support delete
-    - [X] Support a deletion with O or 1 child
-    - [-] Support a deletion with two children
-    - [ ] Support root node deletion
-- [ ] Enhance tree\_ready to be toggle off when root node is deleted
-- [ ] Support timeout
-- [ ] Complete a request when accessing an empty tree from interface, not
-      from engine
 - [ ] Implement CSR and connect it on modules
     - root node address needs to come from it.
     - if root deleted and memory is fragmented, this address need to
       come first when an address is req
-- [ ] Enhance tree space manager and support defrag
+    - module shares portions of this bus, defines allows to parse it easily
+- [ ] Enhance tree_ready to be toggle off when root node is deleted
+- [ ] Add a software reset
+- [ ] Support timeout
+- [ ] Complete a request when accessing an empty tree from interface, not
+      from engine
 - [ ] Make RAM access synchronous, add a scfifo
     - [ ] Make possible to choose between async and sync interface
     - [ ] Outstanding request configurable
@@ -76,3 +63,19 @@
 - Applications:
     - Use in decison tree
     - Fuzzy matching
+
+# DONE
+
+- [X] Add logger in the core. Print statement during code execution and grep
+      them with run.sh
+- [X] Support insert
+    - [X] can insert root node
+    - [X] can insert a token
+- [X] Support depth first search
+- [X] Provide completion for insert commands
+- [X] Support delete
+    - [X] Support a deletion with O or 1 child
+    - [X] Support a deletion with two children
+    - [X] Support root node deletion
+- [X] Enhance tree space manager and support defrag
+

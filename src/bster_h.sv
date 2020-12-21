@@ -1,4 +1,4 @@
-// copyright damien pretet 2020
+// copyright damien pretet 2021
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
@@ -12,9 +12,9 @@
 ///////////////////////////////////////////////////////
  
 `define CHECKER(condition, msg)\
-    if(condition) begin\
-        $display("\033[1;31mERROR: %s\033[0m", msg);\
-        $finish(1);\
+    if(condition) begin \
+        $display("\033[1;31mERROR: %s\033[0m", msg); \
+        $finish(1); \
     end
 
 `define LOG_RESET_ASSERTION\
@@ -208,22 +208,55 @@ typedef enum logic[`FSM_WIDTH-1:0] {
 
 
 /////////////////////////////////////////////////////
-// Index and width of registers handled by csr module
+// Index and width of registers handled by CSR core
 /////////////////////////////////////////////////////
 
-// Define the AXI4-lite addr/data width for define purpose
+// Define the APB addr/data width for define purpose
 `define CSR_ADDR_WIDTH 8
 `define CSR_DATA_WIDTH 32
 
-// AXI4-lite register, used to check AXI4-lite readiness
-`define MAILBOX 0
-`define MAILBOX_W `CSR_DATA_WIDTH
+// Mailbox register, used to check APB interface readiness 
+// Internal register, user only
+`define ADDR_MAILBOX            0
+`define ADDR_RAM_BASE_LSB       1
+`define ADDR_RAM_BASE_MSB       2
+`define ADDR_RAM_MAX_LSB        3
+`define ADDR_RAM_MAX_MSB        4
+`define ADDR_CTRL               5
+`define ADDR_STATUS             6
+`define ADDR_OPCODES            7
 
-// Address of the root node in the tree
-`define ROOT_NODE   (`MAILBOX + `MAILBOX_W)
-`define ROOT_NODE_W 64
 
-// Total width of CSR register shared across the IP
-`define CSR_WIDTH (`ROOT_NODE + `ROOT_NODE_W)
+/////////////////////////////////////////////////////
+// CSR Master bus (CSR core to modules)
+/////////////////////////////////////////////////////
+
+// Address of first RAM line
+`define RAM_BASE_ADDRESS   0
+`define RAM_BASE_ADDRESS_W `CSR_DATA_WIDTH
+
+// Max address in the RAM
+`define RAM_MAX_ADDRESS   (`RAM_BASE_ADDRESS + `RAM_BASE_ADDRESS_W)
+`define RAM_MAX_ADDRESS_W `CSR_DATA_WIDTH
+
+`define CTRL   (`RAM_MAX_ADDRESS + `RAM_MAX_ADDRESS_W)
+`define CTRL_W 1
+
+`define CSR_MST_W (`RAM_BASE_ADDRESS_W + `RAM_MAX_ADDRESS_W + `CTRL_W)
+
+
+/////////////////////////////////////////////////////
+// CSR Slave bus (module to CSR core)
+/////////////////////////////////////////////////////
+
+// Tree space pmanager status
+`define STATUS   0
+`define STATUS_W `CSR_DATA_WIDTH
+
+// Opcodes of the three BST engines
+`define OPCODE   `STATUS_W
+`define OPCODE_W `CSR_DATA_WIDTH
+
+`define CSR_SLV_W (`OPCODE_W + `STATUS_W)
 
 `endif

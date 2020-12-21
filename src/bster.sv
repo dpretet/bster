@@ -1,4 +1,4 @@
-// copyright damien pretet 2020
+// copyright damien pretet 2021
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
@@ -33,25 +33,15 @@ module bster
         input  wire                        aclk,
         input  wire                        aresetn,
         // AXI4-lite interface for Control/Status Registers
-        input  wire                        awvalid,
-        output wire                        awready,
-        input  wire [  CSR_ADDR_WIDTH-1:0] awaddr,
-        input  wire [               2-1:0] awprot,
-        input  wire                        wvalid,
-        output wire                        wready,
-        input  wire [  CSR_DATA_WIDTH-1:0] wdata,
-        input  wire [CSR_DATA_WIDTH/8-1:0] wstrb,
-        output wire                        bvalid,
-        input  wire                        bready,
-        output wire [               2-1:0] bresp,
-        input  wire                        arvalid,
-        output wire                        arready,
-        input  wire [  CSR_ADDR_WIDTH-1:0] araddr,
-        input  wire [               2-1:0] arprot,
-        output wire                        rvalid,
-        input  wire                        rready,
-        output wire [  CSR_DATA_WIDTH-1:0] rdata,
-        output wire [               2-1:0] rresp,
+        input  wire [  CSR_ADDR_WIDTH-1:0] paddr,
+        input  wire [               2-1:0] pprot,
+        input  wire                        penable,
+        input  wire                        pwrite,
+        output wire                        pready,
+        input  wire [  CSR_DATA_WIDTH-1:0] pwdata,
+        input  wire [CSR_DATA_WIDTH/8-1:0] pstrb,
+        output wire [  CSR_DATA_WIDTH-1:0] prdata,
+        output wire                        pslverr,
         // AXI4-Stream slave interface to receive commands
         input  wire                        cmd_tvalid,
         output wire                        cmd_tready,
@@ -114,7 +104,7 @@ module bster
         `CHECKER((CSR_DATA_WIDTH != `CSR_DATA_WIDTH),
             "CSR data parameter and define must have the same value 32");
 
-        `CHECKER((RAM_ADDR_WIDTH > `ROOT_NODE_W),
+        `CHECKER((RAM_ADDR_WIDTH > `RAM_BASE_ADDRESS_W),
             "RAM address width can't be greater than 64 Bits");
 
         `CHECKER((TOKEN_WIDTH > RAM_ADDR_WIDTH),
@@ -123,7 +113,7 @@ module bster
         `CHECKER(((TOKEN_WIDTH+PAYLOAD_WIDTH+8) > AXI4S_WIDTH), // 8 for command width
             "AXI4S interface must be wider to enclose command, token and payload");
 
-        `CHECKER((PAYLOAD_WIDTH+1) > AXI4S_WIDTH, 
+        `CHECKER((PAYLOAD_WIDTH+1) > AXI4S_WIDTH,
             "AXI4S completion must be greater than PAYLOAD_WIDTH + 1");
 
         `CHECKER((RAM_STRB_WIDTH != (RAM_DATA_WIDTH/8)),
@@ -131,9 +121,8 @@ module bster
     end
 
     // Control/Status register shared across the IP's modules
-    logic [      `CSR_WIDTH-1:0] csr_i;
-    logic [      `CSR_WIDTH-1:0] csr_o;
-    logic [      `CSR_WIDTH-1:0] csr_temp;
+    logic [      `CSR_SLV_W-1:0] csr_slv;
+    logic [      `CSR_MST_W-1:0] csr_mst;
 
     logic                        req_valid;
     logic                        req_ready;
@@ -162,7 +151,7 @@ module bster
     logic                        mem_rd_ready;
     logic [  RAM_DATA_WIDTH-1:0] mem_rd_data;
 
-    // AXI4-lite interface to access internal
+    // AMBA APB interface to access internal
     // control/status registers
     csr
     #(
@@ -171,34 +160,20 @@ module bster
     )
     csr_inst
     (
-        .aclk       (aclk   ),
-        .aresetn    (aresetn),
-        .awvalid    (awvalid),
-        .awready    (awready),
-        .awaddr     (awaddr ),
-        .awprot     (awprot ),
-        .wvalid     (wvalid ),
-        .wready     (wready ),
-        .wdata      (wdata  ),
-        .wstrb      (wstrb  ),
-        .bvalid     (bvalid ),
-        .bready     (bready ),
-        .bresp      (bresp  ),
-        .arvalid    (arvalid),
-        .arready    (arready),
-        .araddr     (araddr ),
-        .arprot     (arprot ),
-        .rvalid     (rvalid ),
-        .rready     (rready ),
-        .rdata      (rdata  ),
-        .rresp      (rresp  ),
-        .csr_i      (csr_i  ),
-        .csr_o      (csr_o  )
+        .pclk    (aclk   ),
+        .presetn (aresetn),
+        .paddr   (paddr  ),
+        .pprot   (pprot  ),
+        .penable (penable),
+        .pwrite  (pwrite ),
+        .pready  (pready ),
+        .pwdata  (pwdata ),
+        .pstrb   (pstrb  ),
+        .prdata  (prdata ),
+        .pslverr (pslverr),
+        .csr_slv (csr_slv),
+        .csr_mst (csr_mst)
     );
-
-    // TODO: Connect CSR buses across the modules
-    assign csr_i = {`CSR_WIDTH{1'b0}};
-    assign csr_temp = csr_o;
 
     // AXI4-stream interface to inject command
     // and read back completion
@@ -241,32 +216,33 @@ module bster
     )
     bst_engine_inst
     (
-        .aclk                (aclk               ),
-        .aresetn             (aresetn            ),
-        .req_valid           (req_valid          ),
-        .req_ready           (req_ready          ),
-        .req_cmd             (req_cmd            ),
-        .req_token           (req_token          ),
-        .req_data            (req_data           ),
-        .cpl_valid           (cpl_valid          ),
-        .cpl_ready           (cpl_ready          ),
-        .cpl_data            (cpl_data           ),
-        .cpl_status          (cpl_status         ),
-        .tree_mgt_req_valid  (tree_mgt_req_valid ),
-        .tree_mgt_req_ready  (tree_mgt_req_ready ),
-        .tree_mgt_req_addr   (tree_mgt_req_addr  ),
-        .tree_mgt_free_valid (tree_mgt_free_valid),
-        .tree_mgt_free_ready (tree_mgt_free_ready),
-        .tree_mgt_free_addr  (tree_mgt_free_addr ),
-        .mem_valid           (mem_valid          ),
-        .mem_ready           (mem_ready          ),
-        .mem_rd              (mem_rd             ),
-        .mem_wr              (mem_wr             ),
-        .mem_addr            (mem_addr           ),
-        .mem_wr_data         (mem_wr_data        ),
-        .mem_rd_valid        (mem_rd_valid       ),
-        .mem_rd_ready        (mem_rd_ready       ),
-        .mem_rd_data         (mem_rd_data        )
+        .aclk                (aclk                       ),
+        .aresetn             (aresetn                    ),
+        .req_valid           (req_valid                  ),
+        .req_ready           (req_ready                  ),
+        .req_cmd             (req_cmd                    ),
+        .req_token           (req_token                  ),
+        .req_data            (req_data                   ),
+        .cpl_valid           (cpl_valid                  ),
+        .cpl_ready           (cpl_ready                  ),
+        .cpl_data            (cpl_data                   ),
+        .cpl_status          (cpl_status                 ),
+        .tree_mgt_req_valid  (tree_mgt_req_valid         ),
+        .tree_mgt_req_ready  (tree_mgt_req_ready         ),
+        .tree_mgt_req_addr   (tree_mgt_req_addr          ),
+        .tree_mgt_free_valid (tree_mgt_free_valid        ),
+        .tree_mgt_free_ready (tree_mgt_free_ready        ),
+        .tree_mgt_free_addr  (tree_mgt_free_addr         ),
+        .mem_valid           (mem_valid                  ),
+        .mem_ready           (mem_ready                  ),
+        .mem_rd              (mem_rd                     ),
+        .mem_wr              (mem_wr                     ),
+        .mem_addr            (mem_addr                   ),
+        .mem_wr_data         (mem_wr_data                ),
+        .mem_rd_valid        (mem_rd_valid               ),
+        .mem_rd_ready        (mem_rd_ready               ),
+        .mem_rd_data         (mem_rd_data                ),
+        .csr_mst             (csr_slv[`OPCODE+:`OPCODE_W])
     );
 
     // Tree space manager providing available
@@ -277,14 +253,16 @@ module bster
     )
     tree_space_manager_inst
     (
-        .aclk                (aclk               ),
-        .aresetn             (aresetn            ),
-        .tree_mgt_req_valid  (tree_mgt_req_valid ),
-        .tree_mgt_req_ready  (tree_mgt_req_ready ),
-        .tree_mgt_req_addr   (tree_mgt_req_addr  ),
-        .tree_mgt_free_valid (tree_mgt_free_valid),
-        .tree_mgt_free_ready (tree_mgt_free_ready),
-        .tree_mgt_free_addr  (tree_mgt_free_addr )
+        .aclk                (aclk                       ),
+        .aresetn             (aresetn                    ),
+        .tree_mgt_req_valid  (tree_mgt_req_valid         ),
+        .tree_mgt_req_ready  (tree_mgt_req_ready         ),
+        .tree_mgt_req_addr   (tree_mgt_req_addr          ),
+        .tree_mgt_free_valid (tree_mgt_free_valid        ),
+        .tree_mgt_free_ready (tree_mgt_free_ready        ),
+        .tree_mgt_free_addr  (tree_mgt_free_addr         ),
+        .csr_slv             (csr_mst[`CTRL+:`CTRL_W    ]),
+        .csr_mst             (csr_slv[`STATUS+:`STATUS_W])
     );
 
     // Memory driver managing the AXI4 interface to
@@ -298,52 +276,52 @@ module bster
     )
     memory_driver_inst
     (
-        .aclk             (aclk           ),
-        .aresetn          (aresetn        ),
-        .mem_valid        (mem_valid      ),
-        .mem_ready        (mem_ready      ),
-        .mem_rd           (mem_rd         ),
-        .mem_wr           (mem_wr         ),
-        .mem_addr         (mem_addr       ),
-        .mem_wr_data      (mem_wr_data    ),
-        .mem_rd_valid     (mem_rd_valid   ),
-        .mem_rd_ready     (mem_rd_ready   ),
-        .mem_rd_data      (mem_rd_data    ),
-        .ram_axi_awid     (ram_axi_awid   ),
-        .ram_axi_awaddr   (ram_axi_awaddr ),
-        .ram_axi_awlen    (ram_axi_awlen  ),
-        .ram_axi_awsize   (ram_axi_awsize ),
-        .ram_axi_awburst  (ram_axi_awburst),
-        .ram_axi_awlock   (ram_axi_awlock ),
-        .ram_axi_awcache  (ram_axi_awcache),
-        .ram_axi_awprot   (ram_axi_awprot ),
-        .ram_axi_awvalid  (ram_axi_awvalid),
-        .ram_axi_awready  (ram_axi_awready),
-        .ram_axi_wdata    (ram_axi_wdata  ),
-        .ram_axi_wstrb    (ram_axi_wstrb  ),
-        .ram_axi_wlast    (ram_axi_wlast  ),
-        .ram_axi_wvalid   (ram_axi_wvalid ),
-        .ram_axi_wready   (ram_axi_wready ),
-        .ram_axi_bid      (ram_axi_bid    ),
-        .ram_axi_bresp    (ram_axi_bresp  ),
-        .ram_axi_bvalid   (ram_axi_bvalid ),
-        .ram_axi_bready   (ram_axi_bready ),
-        .ram_axi_arid     (ram_axi_arid   ),
-        .ram_axi_araddr   (ram_axi_araddr ),
-        .ram_axi_arlen    (ram_axi_arlen  ),
-        .ram_axi_arsize   (ram_axi_arsize ),
-        .ram_axi_arburst  (ram_axi_arburst),
-        .ram_axi_arlock   (ram_axi_arlock ),
-        .ram_axi_arcache  (ram_axi_arcache),
-        .ram_axi_arprot   (ram_axi_arprot ),
-        .ram_axi_arvalid  (ram_axi_arvalid),
-        .ram_axi_arready  (ram_axi_arready),
-        .ram_axi_rid      (ram_axi_rid    ),
-        .ram_axi_rdata    (ram_axi_rdata  ),
-        .ram_axi_rresp    (ram_axi_rresp  ),
-        .ram_axi_rlast    (ram_axi_rlast  ),
-        .ram_axi_rvalid   (ram_axi_rvalid ),
-        .ram_axi_rready   (ram_axi_rready )
+        .aclk            (aclk           ),
+        .aresetn         (aresetn        ),
+        .mem_valid       (mem_valid      ),
+        .mem_ready       (mem_ready      ),
+        .mem_rd          (mem_rd         ),
+        .mem_wr          (mem_wr         ),
+        .mem_addr        (mem_addr       ),
+        .mem_wr_data     (mem_wr_data    ),
+        .mem_rd_valid    (mem_rd_valid   ),
+        .mem_rd_ready    (mem_rd_ready   ),
+        .mem_rd_data     (mem_rd_data    ),
+        .ram_axi_awid    (ram_axi_awid   ),
+        .ram_axi_awaddr  (ram_axi_awaddr ),
+        .ram_axi_awlen   (ram_axi_awlen  ),
+        .ram_axi_awsize  (ram_axi_awsize ),
+        .ram_axi_awburst (ram_axi_awburst),
+        .ram_axi_awlock  (ram_axi_awlock ),
+        .ram_axi_awcache (ram_axi_awcache),
+        .ram_axi_awprot  (ram_axi_awprot ),
+        .ram_axi_awvalid (ram_axi_awvalid),
+        .ram_axi_awready (ram_axi_awready),
+        .ram_axi_wdata   (ram_axi_wdata  ),
+        .ram_axi_wstrb   (ram_axi_wstrb  ),
+        .ram_axi_wlast   (ram_axi_wlast  ),
+        .ram_axi_wvalid  (ram_axi_wvalid ),
+        .ram_axi_wready  (ram_axi_wready ),
+        .ram_axi_bid     (ram_axi_bid    ),
+        .ram_axi_bresp   (ram_axi_bresp  ),
+        .ram_axi_bvalid  (ram_axi_bvalid ),
+        .ram_axi_bready  (ram_axi_bready ),
+        .ram_axi_arid    (ram_axi_arid   ),
+        .ram_axi_araddr  (ram_axi_araddr ),
+        .ram_axi_arlen   (ram_axi_arlen  ),
+        .ram_axi_arsize  (ram_axi_arsize ),
+        .ram_axi_arburst (ram_axi_arburst),
+        .ram_axi_arlock  (ram_axi_arlock ),
+        .ram_axi_arcache (ram_axi_arcache),
+        .ram_axi_arprot  (ram_axi_arprot ),
+        .ram_axi_arvalid (ram_axi_arvalid),
+        .ram_axi_arready (ram_axi_arready),
+        .ram_axi_rid     (ram_axi_rid    ),
+        .ram_axi_rdata   (ram_axi_rdata  ),
+        .ram_axi_rresp   (ram_axi_rresp  ),
+        .ram_axi_rlast   (ram_axi_rlast  ),
+        .ram_axi_rvalid  (ram_axi_rvalid ),
+        .ram_axi_rready  (ram_axi_rready )
     );
 
 endmodule

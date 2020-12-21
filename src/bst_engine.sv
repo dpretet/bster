@@ -1,4 +1,4 @@
-// copyright damien pretet 2020
+// copyright damien pretet 2021
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
@@ -56,13 +56,15 @@ module bst_engine
         output wire [  RAM_DATA_WIDTH-1:0] mem_wr_data,
         input  wire                        mem_rd_valid,
         output wire                        mem_rd_ready,
-        input  wire [  RAM_DATA_WIDTH-1:0] mem_rd_data
+        input  wire [  RAM_DATA_WIDTH-1:0] mem_rd_data,
+        output wire [       `OPCODE_W-1:0] csr_mst
     );
 
 
     engine_states fsm_insert;
     engine_states fsm_search;
     engine_states fsm_delete;
+
 
     logic                      tree_ready;
     logic                      engine_ready;
@@ -174,6 +176,9 @@ module bst_engine
                            fsm_delete == WAIT_RAM_CPL
                           );
 
+    assign csr_mst = {{8'b0,{{(8-`FSM_WIDTH){1'b0}},fsm_search},
+                            {{(8-`FSM_WIDTH){1'b0}},fsm_delete},
+                            {{(8-`FSM_WIDTH){1'b0}},fsm_insert}}};
 
     insert_engine
     #(

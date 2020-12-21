@@ -1,0 +1,132 @@
+[*]
+[*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
+[*] Tue Feb 23 20:29:54 2021
+[*]
+[dumpfile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.vcd"
+[dumpfile_mtime] "Tue Feb 23 20:17:12 2021"
+[dumpfile_size] 40639
+[savefile] "/Users/damien/workspace/hdl/bster/sim/apb.gtkw"
+[timestart] 19230
+[size] 1901 1070
+[pos] -1 -1
+*-14.200603 64880 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] bster_testbench.
+[treeopen] bster_testbench.dut.
+[treeopen] bster_testbench.dut.csr_inst.
+[sst_width] 373
+[signals_width] 484
+[sst_expanded] 1
+[sst_vpaned_height] 272
+@c00200
+-interface
+@28
+bster_testbench.dut.csr_inst.pclk
+bster_testbench.dut.csr_inst.presetn
+bster_testbench.dut.csr_inst.penable
+bster_testbench.dut.csr_inst.pwrite
+bster_testbench.dut.csr_inst.pready
+@22
+bster_testbench.dut.csr_inst.paddr[7:0]
+@28
+bster_testbench.dut.csr_inst.pprot[1:0]
+@22
+bster_testbench.dut.csr_inst.pstrb[3:0]
+@1401200
+-interface
+@c00200
+-registres
+@22
+bster_testbench.dut.csr_inst.base_lsb[31:0]
+bster_testbench.dut.csr_inst.base_msb[31:0]
+bster_testbench.dut.csr_inst.mail_box[31:0]
+bster_testbench.dut.csr_inst.max_lsb[31:0]
+bster_testbench.dut.csr_inst.max_msb[31:0]
+@1401200
+-registres
+@c00200
+-wires
+@22
+bster_testbench.dut.csr_inst.prdata_blsb[31:0]
+bster_testbench.dut.csr_inst.prdata_bmsb[31:0]
+bster_testbench.dut.csr_inst.prdata_mb[31:0]
+bster_testbench.dut.csr_inst.prdata_mlsb[31:0]
+bster_testbench.dut.csr_inst.prdata_mmsb[31:0]
+@28
+bster_testbench.dut.csr_inst.pready_blsb
+bster_testbench.dut.csr_inst.pready_bmsb
+bster_testbench.dut.csr_inst.pready_mb
+bster_testbench.dut.csr_inst.pready_mlsb
+bster_testbench.dut.csr_inst.pready_mmsb
+bster_testbench.dut.csr_inst.pslverr_blsb
+bster_testbench.dut.csr_inst.pslverr_bmsb
+bster_testbench.dut.csr_inst.pslverr_mb
+bster_testbench.dut.csr_inst.pslverr_mlsb
+bster_testbench.dut.csr_inst.pslverr_mmsb
+@1401200
+-wires
+@800200
+-mailbox register
+@1000200
+-mailbox register
+@22
+bster_testbench.dut.csr_inst.base_lsb[31:0]
+bster_testbench.dut.csr_inst.base_msb[31:0]
+@28
+bster_testbench.dut.csr_inst.clear_ctrl
+@22
+bster_testbench.dut.csr_inst.control[31:0]
+bster_testbench.dut.csr_inst.csr_mst[64:0]
+bster_testbench.dut.csr_inst.csr_slv[63:0]
+bster_testbench.dut.csr_inst.mail_box[31:0]
+bster_testbench.dut.csr_inst.max_lsb[31:0]
+bster_testbench.dut.csr_inst.max_msb[31:0]
+bster_testbench.dut.csr_inst.opcodes[31:0]
+@28
+bster_testbench.dut.csr_inst.pclk
+bster_testbench.dut.csr_inst.presetn
+bster_testbench.dut.csr_inst.pprot[1:0]
+@22
+bster_testbench.dut.csr_inst.paddr[7:0]
+@28
+bster_testbench.dut.csr_inst.penable
+bster_testbench.dut.csr_inst.pready
+bster_testbench.dut.csr_inst.pwrite
+@22
+bster_testbench.dut.csr_inst.pwdata[31:0]
+@29
+bster_testbench.dut.csr_inst.pslverr
+@22
+bster_testbench.dut.csr_inst.pstrb[3:0]
+bster_testbench.dut.csr_inst.prdata[31:0]
+@c00200
+-register interface
+@22
+bster_testbench.dut.csr_inst.prdata_blsb[31:0]
+bster_testbench.dut.csr_inst.prdata_bmsb[31:0]
+bster_testbench.dut.csr_inst.prdata_ctrl[31:0]
+bster_testbench.dut.csr_inst.prdata_mb[31:0]
+bster_testbench.dut.csr_inst.prdata_mlsb[31:0]
+bster_testbench.dut.csr_inst.prdata_mmsb[31:0]
+bster_testbench.dut.csr_inst.prdata_op[31:0]
+bster_testbench.dut.csr_inst.prdata_st[31:0]
+@28
+bster_testbench.dut.csr_inst.pslverr_mlsb
+bster_testbench.dut.csr_inst.pslverr_mmsb
+bster_testbench.dut.csr_inst.pslverr_op
+bster_testbench.dut.csr_inst.pslverr_st
+bster_testbench.dut.csr_inst.pready_blsb
+bster_testbench.dut.csr_inst.pready_bmsb
+bster_testbench.dut.csr_inst.pready_ctrl
+bster_testbench.dut.csr_inst.pready_mb
+bster_testbench.dut.csr_inst.pready_mlsb
+bster_testbench.dut.csr_inst.pready_mmsb
+bster_testbench.dut.csr_inst.pready_op
+bster_testbench.dut.csr_inst.pready_st
+bster_testbench.dut.csr_inst.pslverr_blsb
+bster_testbench.dut.csr_inst.pslverr_bmsb
+bster_testbench.dut.csr_inst.pslverr_ctrl
+bster_testbench.dut.csr_inst.pslverr_mb
+@1401200
+-register interface
+[pattern_trace] 1
+[pattern_trace] 0

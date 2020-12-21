@@ -1,9 +1,11 @@
-// copyright damien pretet 2020
+// copyright damien pretet 2021
 // distributed under the mit license
 // https://opensource.org/licenses/mit-license.php
 
 `timescale 1 ns / 1 ps
 `default_nettype none
+
+`include "bster_h.sv"
 
 module tree_space_manager
 
@@ -18,7 +20,9 @@ module tree_space_manager
         output wire [RAM_ADDR_WIDTH-1:0] tree_mgt_req_addr,
         input  wire                      tree_mgt_free_valid,
         output wire                      tree_mgt_free_ready,
-        input  wire [RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr
+        input  wire [RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr,
+        input  wire [       `CTRL_W-1:0] csr_slv,
+        output wire [     `STATUS_W-1:0] csr_mst
     );
 
     localparam [RAM_ADDR_WIDTH-1:0] ROOT_ADDR = {RAM_ADDR_WIDTH{1'b0}};

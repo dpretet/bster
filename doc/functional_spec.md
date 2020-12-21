@@ -24,12 +24,13 @@
 Spec:
 
 - RTL description in SystemVerilog
-- [AMBA4](https://developer.arm.com/architectures/system-architectures/amba/documentation) compliant.
+- [AMBA AXI4](https://developer.arm.com/architectures/system-architectures/amba/documentation) compliant.
+- [AMBA APB](https://developer.arm.com/documentation/ihi0024/latest/) compliant.
 - [FPGA](https://en.wikipedia.org/wiki/Field-programmable_gate_array) agnostic.
 - Support any memory type, depth and size being AXI4 compliant. Users can plug
-  their own model if necessary.
+  their own model if necessary or connect the IP on existing interconnect.
 - The IP provides 3 interfaces:
-    - 1 AXI4-lite interface to access the [register map](#Register-Map).
+    - 1 APB interface to access the [register map](#Register-Map).
     - 1 AXI4-Stream slave to request [operations](#Commands) on the tree.
     - 1 AXI4-Stream master to get back command's completion.
 - A node in the tree uses the `token` terminology to name an element to store.
@@ -84,7 +85,7 @@ Both the interfaces use the same parameter (`AXI4S_WIDTH`) to be sized.
 
 Next sections describes the commands supported. Search token, insert token
 and delete token are native features of bster engine, the other are sequence
-of above one to unleash IP core capability and propose advance features to 
+of above one to unleash IP core capability and propose advance features to
 operate on the tree.
 
 ### Search commands
@@ -197,47 +198,72 @@ description from LSB to MSB of a node.
 
 ## Control / Status Register Map
 
-Register map can be accessed from 32 bits wide only AXI4-lite interface.
+Register map can be accessed from 32 bits wide only APB interface.
 Address are indicated with byte oriented notation.
 
-- Mailbox (Address 32'h00 - offset 0) (32 bits) (**Read/Write**)
-    - A register to verify AXI4-lite interface responsiveness
+- Mailbox (Address 0x00 - offset 0) (32 bits) (**Read/Write**)
+    - A register to verify APB interface responsiveness
     - User only, never used by the IP
 
-- Root node address (Address 32'h04 - offset 0) (`AWIDTH` bits) (**Read/Write**)
+- RAM Base Address (Address 0x01 - offset 0) (`AWIDTH` bits) (**Read/Write**)
+    - The LSB tree base address
+    - User needs to apply a reset procedure if updated
+
+- RAM Base Address (Address 0x02 - offset 0) (`AWIDTH` bits) (**Read/Write**)
+    - The MSB tree base address
+    - If address width is smaller or equal to 32 bits, writing this register
+      will have no effect
+    - User needs to apply a reset procedure if updated
+
+- RAM Max Address (Address 0x03 - offset 0) (`AWIDTH` bits) (**Read/Write**)
     - The root node LSB address
     - User needs to apply a reset procedure if updated
 
-- Root node address (Address 32'h08 - offset 0) (`AWIDTH` bits) (**Read/Write**)
-    - The root node MSB address
-    - If address width is smaller or equal to 32 bits, must be tied to 0
+- RAM Max Address (Address 0x04 - offset 0) (`AWIDTH` bits) (**Read/Write**)
+    - The root node LSB address
     - User needs to apply a reset procedure if updated
 
-- Restart the IP (Address 32'h0C - offset 0) (1 bit) (**Read/Write**)
+- Restart the IP (Address 0x05 - offset 0) (1 bit) (**Read/Write**)
     - Apply the restart procedure.
     - Auto set to 0 once restart is finished, remains asserted during procedure
     - All IP's interfaces remain unavailable during this operation.
 
-- Memory access error (Address 32'h0C - offset 1) (1 bit) (**Read-only**)
-    - Indicate a problem during a previous memory access (last over 1 ms)
-    - Return 1 if write access issued in these fields
-
-- Memory full (Address 32'h0C - offset 2) (1 bit) (**Read-only**)
-    - Indicate no more memory space remains for future storage
-    - Return 1 if write access issued in these fields
-
-- Under operation (Address 32'h0C - offset 3) (1 bit) (**Read-only**)
-    - IP is processing a user request
-    - Return 1 if write access issued in these fields
-
-- Under maintenance (Address 32'h0C - offset 4) (1 bit) (**Read-only**)
-    - IP is unavailable, applying an internal operation
-    - Return 1 if write access issued in these fields
-
-- Operation under execution (Address 32'h0C - offset 5) (8 bits) (**Read-only**)
-    - Provides the opcode of the operation under execution
-    - Return 1 if write access issued in these fields
-
-- Upper bits reserved (**Reserved**))
+- Reserved (Address 0x05 - offset 1) (31 bits) (**Read-only**)
     - Reserved for future update or internal usage.
-    - Return error if read/write access issued in these fields
+    - Return error=1 if write access issued in these fields
+
+- Memory access error (Address 0x06 - offset 0) (1 bit) (**Read-only**)
+    - Indicate a problem during a previous memory access (last over 1 ms)
+    - Return error=1 if write access issued in these fields
+
+- Memory full (Address 0x06 - offset 1) (1 bit) (**Read-only**)
+    - Indicate no more memory space remains for future storage
+    - Return error=1 if write access issued in these fields
+
+- Under operation (Address 0x06 - offset 2) (1 bit) (**Read-only**)
+    - IP is processing a user request
+    - Return error=1 if write access issued in these fields
+
+- Under maintenance (Address 0x06 - offset 3) (1 bit) (**Read-only**)
+    - IP is unavailable, applying an internal operation
+    - Return error=1 if write access issued in these fields
+
+- Reserved (Address 0x06 - offset 4) (29 bits) (**Read-only**)
+    - Reserved for future update or internal usage.
+    - Return error=1 if write access issued in these fields
+
+- Insert Engine State (Address 0x07 - offset 0) (8 bits) (**Read-only**)
+    - Provides the opcode of the operation under execution of insert engine
+    - Return error=1 if write access issued in these fields
+
+- Delete Engine State (Address 0x07 - offset 8) (8 bits) (**Read-only**)
+    - Provides the opcode of the operation under execution of delete engine
+    - Return error=1 if write access issued in these fields
+
+- Delete Engine State (Address 0x07 - offset 16) (8 bits) (**Read-only**)
+    - Provides the opcode of the operation under execution of search engine
+    - Return error=1 if write access issued in these fields
+
+- Reserved (Address 0x07 - offset 24) (8 bits) (**Read-only**)
+    - Reserved for future update or internal usage.
+    - Return error=1 if write access issued in these fields

@@ -66,11 +66,11 @@ module axi_ram
         assign s_axi_rresp = 2'b0;
 
         // Simple AXI RAM, supported basic write
-        always @ (posedge aclk) begin
+        always @ (posedge aclk or negedge aresetn) begin
             if (aresetn ==  1'b0) begin
                 wait_wdata <= 1'b0;
             end else begin
-                if (s_axi_awvalid && s_axi_awready ) begin
+                if (s_axi_awvalid && s_axi_awready) begin
                     if (s_axi_wvalid && s_axi_wready) begin
                         mem[s_axi_awaddr] <= s_axi_wdata;
                     end else begin

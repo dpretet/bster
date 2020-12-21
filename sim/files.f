@@ -13,11 +13,12 @@
 ../src/search_engine.sv
 ../src/delete_engine.sv
 ../src/csr.sv
+../src/csr_reg.sv
 ../src/interface_handler.sv
 ../src/tree_space_manager.sv
 ../src/memory_driver.sv
 ../src/axi_ram.sv
-../src/scfifo.v
+../src/scfifo.sv
 ../src/scfifo_ram.sv
 +define+VERBOSE
 +define+BSTER_LOGGER

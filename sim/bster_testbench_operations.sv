@@ -27,25 +27,16 @@ module bster_testbench();
     reg                         aclk;
     reg                         aresetn;
     // AXI4-lite CSR signals
-    reg                         awvalid;
-    wire                        awready;
-    reg  [  CSR_ADDR_WIDTH-1:0] awaddr;
-    reg  [               2-1:0] awprot;
-    reg                         wvalid;
-    wire                        wready;
-    reg  [  CSR_DATA_WIDTH-1:0] wdata;
-    reg  [CSR_DATA_WIDTH/8-1:0] wstrb;
-    wire                        bvalid;
-    reg                         bready;
-    wire [               2-1:0] bresp;
-    reg                         arvalid;
-    wire                        arready;
-    reg  [  CSR_ADDR_WIDTH-1:0] araddr;
-    reg  [               2-1:0] arprot;
-    wire                        rvalid;
-    reg                         rready;
-    wire [  CSR_DATA_WIDTH-1:0] rdata;
-    wire [               2-1:0] rresp;
+    reg  [  CSR_ADDR_WIDTH-1:0] paddr;
+    reg  [               2-1:0] pprot;
+    reg                         penable;
+    reg                         pwrite;
+    wire                        pready;
+    reg  [  CSR_DATA_WIDTH-1:0] pwdata;
+    reg  [CSR_DATA_WIDTH/8-1:0] pstrb;
+    wire [  CSR_DATA_WIDTH-1:0] prdata;
+    wire                        pslverr;
+
     // AXI4-stream command signals
     reg                         cmd_tvalid;
     wire                        cmd_tready;
@@ -99,22 +90,6 @@ module bster_testbench();
     // Tasks to inject commands and sink completions/status
     `include "bster_tasks.sv"
 
-    function print_parameters();
-    begin
-        $display("Core Parameters Setup:");
-        $display("  - TOKEN_WIDTH    = %0d", TOKEN_WIDTH);
-        $display("  - PAYLOAD_WIDTH  = %0d", PAYLOAD_WIDTH);
-        $display("  - CSR_ADDR_WIDTH = %0d", CSR_ADDR_WIDTH);
-        $display("  - CSR_DATA_WIDTH = %0d", CSR_DATA_WIDTH);
-        $display("  - AXI4S_WIDTH    = %0d", AXI4S_WIDTH);
-        $display("  - RAM_DATA_WIDTH = %0d", RAM_DATA_WIDTH);
-        $display("  - RAM_ADDR_WIDTH = %0d", RAM_ADDR_WIDTH);
-        $display("  - RAM_STRB_WIDTH = %0d", (RAM_DATA_WIDTH/8));
-        $display("  - RAM_ID_WIDTH   = %0d", RAM_ID_WIDTH);
-    end
-    endfunction
-
-
     /////////////////////////////////////////////////////////////
     // Maximum number of bytes to transfer in each data transfer,
     // or beat, in a burst
@@ -152,25 +127,15 @@ module bster_testbench();
     (
     aclk,
     aresetn,
-    awvalid,
-    awready,
-    awaddr,
-    awprot,
-    wvalid,
-    wready,
-    wdata,
-    wstrb,
-    bvalid,
-    bready,
-    bresp,
-    arvalid,
-    arready,
-    araddr,
-    arprot,
-    rvalid,
-    rready,
-    rdata,
-    rresp,
+    paddr,
+    pprot,
+    penable,
+    pwrite,
+    pready,
+    pwdata,
+    pstrb,
+    prdata,
+    pslverr,
     cmd_tvalid,
     cmd_tready,
     cmd_tdata,
@@ -267,25 +232,19 @@ module bster_testbench();
     always #1 aclk <= ~aclk;
 
     initial begin : INIT_BLOCK
-        $dumpfile("bster_testbench.vcd");
+        $dumpfile("bster_testbench\.vcd");
         $dumpvars(0, bster_testbench);
     end
 
     task setup(msg="Initialize core's IOs");
     begin
-        // print_parameters();
         aresetn = 0;
-        awvalid = 0;
-        awaddr = 0;
-        awprot = 0;
-        wvalid = 0;
-        wdata = 0;
-        wstrb = 0;
-        bready = 0;
-        arvalid = 0;
-        araddr = 0;
-        arprot = 0;
-        rready = 0;
+        paddr = 0;
+        pprot = 0;
+        penable = 0;
+        pwrite = 0;
+        pwdata = 0;
+        pstrb = 0;
         cmd_tvalid = 0;
         cmd_tdata = 0;
         cpl_tready = 0;
@@ -303,26 +262,7 @@ module bster_testbench();
     end
     endtask
 
-    `TEST_SUITE("BSTer Testsuite")
-
-    ///    Available macros:"
-    ///
-    ///    - `INFO("message"):      Print a grey message
-    ///    - `SUCCESS("message"):   Print a green message
-    ///    - `WARNING("message"):   Print an orange message and increment warning counter
-    ///    - `CRITICAL("message"):  Print an pink message and increment critical counter
-    ///    - `ERROR("message"):     Print a red message and increment error counter
-    ///
-    ///    - `FAIL_IF(aSignal):                 Increment error counter if evaluaton is true
-    ///    - `FAIL_IF_NOT(aSignal):             Increment error coutner if evaluation is false
-    ///    - `FAIL_IF_EQUAL(aSignal, 23):       Increment error counter if evaluation is equal
-    ///    - `FAIL_IF_NOT_EQUAL(aSignal, 45):   Increment error counter if evaluation is not equal
-    ///    - `ASSERT(aSignal):                  Increment error counter if evaluation is not true
-    ///    - `ASSERT((aSignal == 0)):           Increment error counter if evaluation is not true
-    ///
-    ///    Available flag:
-    ///
-    ///    - `LAST_STATUS: tied to 1 is last macro did experience a failure, else tied to 0
+    `TEST_SUITE("BSTer Core Testsuite")
 
     `UNIT_TEST("IDLE CHECK")
 
@@ -334,36 +274,20 @@ module bster_testbench();
 
         `MSG("Check IDLE under reset");
 
-        `ASSERT(awready == 1'b0, "awready");
-        `ASSERT(wready == 1'b0, "wready");
-        `ASSERT(bvalid == 1'b0, "bvalid");
-        `ASSERT(bresp == 2'b0, "bresp");
-        `ASSERT(arready == 1'b0, "arready");
-        `ASSERT(rvalid == 1'b0, "rvalid");
-        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}}, "rdata");
-        `ASSERT(rresp == 1'b0, "rresp");
+        `ASSERT(pready == 1'b0, "pready");
 
-        // `ASSERT(cmd_tready == 1'b0, "");
         `ASSERT(cpl_tvalid == 1'b0, "tvalid");
         `ASSERT(cpl_tdata == {AXI4S_WIDTH{1'b0}}, "tdata");
 
         `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}}, "awid");
-        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}}, "awaddr");
-        // `ASSERT(ram_axi_awlen == 8'b0, "awlen");
         `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH), "awsier");
         `ASSERT(ram_axi_awburst == 2'b1, "awburst");
         `ASSERT(ram_axi_awlock == 1'b0, "awlock");
         `ASSERT(ram_axi_awcache == 4'b0, "awcache");
         `ASSERT(ram_axi_awprot == 3'b0, "awprot");
         `ASSERT(ram_axi_awvalid == 1'b0, "awvalid");
-        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}}, "wdata");
-        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}}, "wstrb");
-        // `ASSERT(ram_axi_wlast == 1'b0, "wlast");
         `ASSERT(ram_axi_wvalid == 1'b0, "wvalid");
-        // `ASSERT(ram_axi_bready == 1'b0, "bready");
         `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}}, "arid");
-        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}}, "araddr");
-        // `ASSERT(ram_axi_arlen == 8'b0, "arlen");
         `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH), "arsize");
         `ASSERT(ram_axi_arburst == 2'b1, "arburst");
         `ASSERT(ram_axi_arlock == 1'b0, "arlock");
@@ -380,43 +304,27 @@ module bster_testbench();
 
         `MSG("Check IDLE after reset release");
 
-        `ASSERT(awready == 1'b1, "awready");
-        `ASSERT(wready == 1'b1, "wready");
-        `ASSERT(bvalid == 1'b0, "bvalid");
-        `ASSERT(bresp == 2'b0, "bresp");
-        `ASSERT(arready == 1'b1, "arready");
-        `ASSERT(rvalid == 1'b0, "rvalid");
-        `ASSERT(rdata == {CSR_DATA_WIDTH{1'b0}}, "rdata");
-        `ASSERT(rresp == 1'b0, "rresp");
+        `ASSERT(pready == 1'b0, "pready");
 
         `ASSERT(cmd_tready == 1'b1, "tready");
         `ASSERT(cpl_tvalid == 1'b0, "tvalid");
         `ASSERT(cpl_tdata == 0, "tdata");
 
         `ASSERT(ram_axi_awid == {RAM_ID_WIDTH{1'b0}}, "awid");
-        // `ASSERT(ram_axi_awaddr == {RAM_ADDR_WIDTH{1'b0}}, "awaddrc");
-        // `ASSERT(ram_axi_awlen == 8'b0, "awlen");
         `ASSERT(ram_axi_awsize == sizedec(RAM_DATA_WIDTH), "awsize");
         `ASSERT(ram_axi_awburst == 2'b1, "awburst");
         `ASSERT(ram_axi_awlock == 1'b0, "awlock");
         `ASSERT(ram_axi_awcache == 4'b0, "awcache");
         `ASSERT(ram_axi_awprot == 3'b0, "awprot");
         `ASSERT(ram_axi_awvalid == 1'b0, "awalid");
-        // `ASSERT(ram_axi_wdata == {RAM_DATA_WIDTH{1'b0}}, "wdata");
-        // `ASSERT(ram_axi_wstrb == {RAM_STRB_WIDTH{1'b0}}, "wstrb");
-        // `ASSERT(ram_axi_wlast == 1'b0, "wlast");
         `ASSERT(ram_axi_wvalid == 1'b0, "wvalid");
-        // `ASSERT(ram_axi_bready == 1'b0, "bready");
         `ASSERT(ram_axi_arid == {RAM_ID_WIDTH{1'b0}}, "arid");
-        // `ASSERT(ram_axi_araddr == {RAM_ADDR_WIDTH{1'b0}}, "araddr");
-        // `ASSERT(ram_axi_arlen == 8'b0, "arlen");
         `ASSERT(ram_axi_arsize == sizedec(RAM_DATA_WIDTH), "arsize");
         `ASSERT(ram_axi_arburst == 2'b1, "arburst");
         `ASSERT(ram_axi_arlock == 1'b0, "arlock");
         `ASSERT(ram_axi_arcache == 4'b0, "arcache");
         `ASSERT(ram_axi_arprot == 3'b0, "arprot");
         `ASSERT(ram_axi_arvalid == 1'b0, "arvalid");
-        // `ASSERT(ram_axi_rready == 1'b0, "rready");
 
     `UNIT_TEST_END
 
@@ -681,7 +589,7 @@ module bster_testbench();
 
     `UNIT_TEST_END
 
-/*
+
     `UNIT_TEST("Create a tree then delete the root node")
 
         // Create a tree, add root and children and check children
@@ -723,7 +631,7 @@ module bster_testbench();
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
                 "Don't expect an error while this child must be available");
     `UNIT_TEST_END
-*/
+
     `TEST_SUITE_END
 
 endmodule

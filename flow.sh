@@ -89,16 +89,18 @@ main() {
 
     source scripts/setup.sh
 
+    iverilog -V
+
     if [[ $1 == "lint" ]]; then
         printinfo "Start linting"
         verilator --lint-only \
             +1800-2017ext+sv \
             -Wall -cdc \
             -I./src\
+            ./src/csr.sv\
             ./src/bst_engine.sv\
             ./src/bster.sv\
             ./src/bster_h.sv\
-            ./src/csr.sv\
             ./src/interface_handler.sv\
             ./src/memory_driver.sv\
             ./src/tree_space_manager.sv\
@@ -116,7 +118,8 @@ main() {
     if [[ $1 == "sim" ]]; then
         printinfo "Start simulation"
         cd "$BSTERDIR/sim"
-        ./run.sh
+        ./run.sh bster_testbench_operations.sv
+        ./run.sh bster_testbench_apb.sv
         return $?
     fi
 
