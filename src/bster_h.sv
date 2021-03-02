@@ -233,30 +233,27 @@ typedef enum logic[`FSM_WIDTH-1:0] {
 
 // Address of first RAM line
 `define RAM_BASE_ADDRESS   0
-`define RAM_BASE_ADDRESS_W `CSR_DATA_WIDTH
+`define RAM_BASE_ADDRESS_W (`CSR_DATA_WIDTH * 2)
 
 // Max address in the RAM
 `define RAM_MAX_ADDRESS   (`RAM_BASE_ADDRESS + `RAM_BASE_ADDRESS_W)
-`define RAM_MAX_ADDRESS_W `CSR_DATA_WIDTH
+`define RAM_MAX_ADDRESS_W (`CSR_DATA_WIDTH * 2)
 
-`define CTRL   (`RAM_MAX_ADDRESS + `RAM_MAX_ADDRESS_W)
-`define CTRL_W 1
-
-`define CSR_MST_W (`RAM_BASE_ADDRESS_W + `RAM_MAX_ADDRESS_W + `CTRL_W)
+`define CSR_MST_W (`RAM_BASE_ADDRESS_W + `RAM_MAX_ADDRESS_W)
 
 
 /////////////////////////////////////////////////////
 // CSR Slave bus (module to CSR core)
 /////////////////////////////////////////////////////
 
-// Tree space pmanager status
-`define STATUS   0
-`define STATUS_W `CSR_DATA_WIDTH
+// Tree space manager status
+`define TSM   0
+`define TSM_W 1
 
 // Opcodes of the three BST engines
-`define OPCODE   `STATUS_W
-`define OPCODE_W `CSR_DATA_WIDTH
+`define BE   `TSM_W
+`define BE_W 25
 
-`define CSR_SLV_W (`OPCODE_W + `STATUS_W)
+`define CSR_SLV_W (`TSM_W + `BE_W)
 
 `endif

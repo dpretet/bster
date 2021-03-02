@@ -138,6 +138,7 @@ module bster
     logic                        tree_mgt_req_ready;
     logic [  RAM_ADDR_WIDTH-1:0] tree_mgt_req_addr;
     logic                        tree_mgt_free_valid;
+    logic                        tree_mgt_free_is_root;
     logic                        tree_mgt_free_ready;
     logic [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr;
 
@@ -150,11 +151,13 @@ module bster
     logic                        mem_rd_valid;
     logic                        mem_rd_ready;
     logic [  RAM_DATA_WIDTH-1:0] mem_rd_data;
+    logic                        swrst;
+    logic                        tree_ready;
 
-    // AMBA APB interface to access internal
-    // control/status registers
+    // AMBA APB interface to access internal control/status registers
     csr
     #(
+        .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
         .CSR_ADDR_WIDTH (CSR_ADDR_WIDTH),
         .CSR_DATA_WIDTH (CSR_DATA_WIDTH)
     )
@@ -172,7 +175,8 @@ module bster
         .prdata  (prdata ),
         .pslverr (pslverr),
         .csr_slv (csr_slv),
-        .csr_mst (csr_mst)
+        .csr_mst (csr_mst),
+        .swrst   (swrst  )
     );
 
     // AXI4-stream interface to inject command
@@ -187,6 +191,7 @@ module bster
     (
         .aclk       (aclk      ),
         .aresetn    (aresetn   ),
+        .tree_ready (tree_ready),
         .cmd_tvalid (cmd_tvalid),
         .cmd_tready (cmd_tready),
         .cmd_tdata  (cmd_tdata ),
@@ -216,33 +221,35 @@ module bster
     )
     bst_engine_inst
     (
-        .aclk                (aclk                       ),
-        .aresetn             (aresetn                    ),
-        .req_valid           (req_valid                  ),
-        .req_ready           (req_ready                  ),
-        .req_cmd             (req_cmd                    ),
-        .req_token           (req_token                  ),
-        .req_data            (req_data                   ),
-        .cpl_valid           (cpl_valid                  ),
-        .cpl_ready           (cpl_ready                  ),
-        .cpl_data            (cpl_data                   ),
-        .cpl_status          (cpl_status                 ),
-        .tree_mgt_req_valid  (tree_mgt_req_valid         ),
-        .tree_mgt_req_ready  (tree_mgt_req_ready         ),
-        .tree_mgt_req_addr   (tree_mgt_req_addr          ),
-        .tree_mgt_free_valid (tree_mgt_free_valid        ),
-        .tree_mgt_free_ready (tree_mgt_free_ready        ),
-        .tree_mgt_free_addr  (tree_mgt_free_addr         ),
-        .mem_valid           (mem_valid                  ),
-        .mem_ready           (mem_ready                  ),
-        .mem_rd              (mem_rd                     ),
-        .mem_wr              (mem_wr                     ),
-        .mem_addr            (mem_addr                   ),
-        .mem_wr_data         (mem_wr_data                ),
-        .mem_rd_valid        (mem_rd_valid               ),
-        .mem_rd_ready        (mem_rd_ready               ),
-        .mem_rd_data         (mem_rd_data                ),
-        .csr_mst             (csr_slv[`OPCODE+:`OPCODE_W])
+        .aclk                  (aclk                       ),
+        .aresetn               (aresetn                    ),
+        .tree_ready            (tree_ready                 ),
+        .req_valid             (req_valid                  ),
+        .req_ready             (req_ready                  ),
+        .req_cmd               (req_cmd                    ),
+        .req_token             (req_token                  ),
+        .req_data              (req_data                   ),
+        .cpl_valid             (cpl_valid                  ),
+        .cpl_ready             (cpl_ready                  ),
+        .cpl_data              (cpl_data                   ),
+        .cpl_status            (cpl_status                 ),
+        .tree_mgt_req_valid    (tree_mgt_req_valid         ),
+        .tree_mgt_req_ready    (tree_mgt_req_ready         ),
+        .tree_mgt_req_addr     (tree_mgt_req_addr          ),
+        .tree_mgt_free_valid   (tree_mgt_free_valid        ),
+        .tree_mgt_free_is_root (tree_mgt_free_is_root      ),
+        .tree_mgt_free_ready   (tree_mgt_free_ready        ),
+        .tree_mgt_free_addr    (tree_mgt_free_addr         ),
+        .mem_valid             (mem_valid                  ),
+        .mem_ready             (mem_ready                  ),
+        .mem_rd                (mem_rd                     ),
+        .mem_wr                (mem_wr                     ),
+        .mem_addr              (mem_addr                   ),
+        .mem_wr_data           (mem_wr_data                ),
+        .mem_rd_valid          (mem_rd_valid               ),
+        .mem_rd_ready          (mem_rd_ready               ),
+        .mem_rd_data           (mem_rd_data                ),
+        .csr_mst               (csr_slv[`BE+:`BE_W]        )
     );
 
     // Tree space manager providing available
@@ -253,16 +260,17 @@ module bster
     )
     tree_space_manager_inst
     (
-        .aclk                (aclk                       ),
-        .aresetn             (aresetn                    ),
-        .tree_mgt_req_valid  (tree_mgt_req_valid         ),
-        .tree_mgt_req_ready  (tree_mgt_req_ready         ),
-        .tree_mgt_req_addr   (tree_mgt_req_addr          ),
-        .tree_mgt_free_valid (tree_mgt_free_valid        ),
-        .tree_mgt_free_ready (tree_mgt_free_ready        ),
-        .tree_mgt_free_addr  (tree_mgt_free_addr         ),
-        .csr_slv             (csr_mst[`CTRL+:`CTRL_W    ]),
-        .csr_mst             (csr_slv[`STATUS+:`STATUS_W])
+        .aclk                  (aclk                  ),
+        .aresetn               (aresetn               ),
+        .tree_mgt_req_valid    (tree_mgt_req_valid    ),
+        .tree_mgt_req_ready    (tree_mgt_req_ready    ),
+        .tree_mgt_req_addr     (tree_mgt_req_addr     ),
+        .tree_mgt_free_valid   (tree_mgt_free_valid   ),
+        .tree_mgt_free_is_root (tree_mgt_free_is_root ),
+        .tree_mgt_free_ready   (tree_mgt_free_ready   ),
+        .tree_mgt_free_addr    (tree_mgt_free_addr    ),
+        .csr_slv               (csr_mst[0+:`CSR_MST_W]),
+        .csr_mst               (csr_slv[`TSM+:`TSM_W] )
     );
 
     // Memory driver managing the AXI4 interface to

@@ -1,52 +1,41 @@
-# DOC
-
-- [ ] Write registers into tables
-- [ ] Write commands into tables
-- [ ] Describe algorithms with draws
-
-
 # DESIGN
 
-- [ ] Implement CSR and connect it on modules
+- [-] Implement CSR and connect it on modules
+    - Add a software reset
     - root node address needs to come from it.
-    - if root deleted and memory is fragmented, this address need to
-      come first when an address is req
-    - module shares portions of this bus, defines allows to parse it easily
-- [ ] Enhance tree_ready to be toggle off when root node is deleted
-- [ ] Add a software reset
-- [ ] Support timeout
-- [ ] Complete a request when accessing an empty tree from interface, not
-      from engine
-- [ ] Make RAM access synchronous, add a scfifo
-    - [ ] Make possible to choose between async and sync interface
-    - [ ] Outstanding request configurable
-- [ ] Cache layer:
-    - anticipate next read based on read address and command
-    - store last written address to avoid to read again
-    - use a local CAM
-- [ ] List error cases encountered by BSTer:
-    - try to insert while tree is not initialized with a root node
-    - digest is not valid while reading a node
-    - unsupported command issued
-- [ ] Create a design with a SOC (using LiteX) and add as peripheral
-- [ ] Implement further command by adding a sequencer to combine existing
-      commands and propose new features. With a CPU? Thru an API?
-- [ ] Support completion with status = 1 if commabnd issued is not supported
-- [ ] Support heap creation (forward or backward ordering)
-- [ ] Support sort command
-- [ ] Support shallow copy
-- [ ] Replace RAM model with a real one (Use XLZ AXI RAM?)
-- [ ] Support error for any memory failure when inserting or deleting tokens
 
 
 # BACKLOG
 
 - Support breadth first search
+- Support timeout
+- Replace RAM model with a real one
+- Support error for any memory failure when inserting or deleting tokens
 - Put in place in-house benchmarking into the core
-- Support signed values?
 - Test conformance: use sort or shallow copy, data must arrives in right order
-  meaning its well constructed
+  Meaning its well constructed
 - Support any AXI4 interface width
+- Make RAM access synchronous, add a scfifo
+    - Make possible to choose between async and sync interface
+    - Outstanding request configurable
+- Cache layer:
+    - anticipate next read based on read address and command
+    - store last written address to avoid to read again
+    - use a local CAM
+- Create a design with a SOC (using LiteX) and add as peripheral
+- Implement further command by adding a sequencer to combine existing
+      commands and propose new features. With a CPU? Thru an API?
+    - Support heap creation (forward or backward ordering)
+    - Support sort command
+    - Support shallow copy
+- Review error cases encountered by BSTer:
+    - try to insert while tree is not initialized with a root node
+    - digest is not valid while reading a node
+    - unsupported command issued
+- Doc:
+    - Write registers into tables
+    - Write commands into tables
+    - Describe algorithms with draws
 
 
 # STUDY
@@ -66,6 +55,10 @@
 
 # DONE
 
+- [X] Enhance tree_ready to be toggle off when root node is deleted
+- [X] Complete a request when accessing an empty tree from interface, not
+      from engine
+- [X] Support completion with status = 1 if command issued is not supported
 - [X] Add logger in the core. Print statement during code execution and grep
       them with run.sh
 - [X] Support insert

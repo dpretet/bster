@@ -13,6 +13,7 @@ module scfifo
     )(
         input  wire                  aclk,
         input  wire                  aresetn,
+        input  wire                  swrst,
         input  wire [DATA_WIDTH-1:0] data_in,
         input  wire                  push,
         output wire                  full,
@@ -31,7 +32,11 @@ module scfifo
     always @ (posedge aclk or negedge aresetn) begin
         if (aresetn == 1'b0) begin
             wrptr <= {(DEPTH+1){1'b0}};
-        end else begin
+        end
+        else if (swrst) begin
+            wrptr <= {(DEPTH+1){1'b0}};
+        end 
+        else begin
             if (push == 1'b1 && full == 1'b0) begin
                 wrptr <= wrptr + 1'b1;
             end
@@ -42,7 +47,11 @@ module scfifo
     always @ (posedge aclk or negedge aresetn) begin
         if (aresetn == 1'b0) begin
             rdptr <= {(DEPTH+1){1'b0}};
-        end else begin
+        end
+        else if (swrst) begin
+            rdptr <= {(DEPTH+1){1'b0}};
+        end 
+        else begin
             if (pull == 1'b1 && empty == 1'b0) begin
                 rdptr <= rdptr + 1'b1;
             end

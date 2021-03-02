@@ -260,14 +260,14 @@ module bster_testbench();
     endtask
 
     task teardown(msg="");
-        #20;
     begin
+        #20;
     end
     endtask
 
     `TEST_SUITE("BSTer Core Testsuite")
 
-    `UNIT_TEST("Write mailbox register with APB")
+    `UNIT_TEST("Read'n'Write mailbox register")
 
         `MSG("Write 0 and check we read back. Both ops must receive error=0");
 
@@ -316,7 +316,7 @@ module bster_testbench();
 
     `UNIT_TEST_END;
 
-    `UNIT_TEST("Write read-only registers with APB")
+    `UNIT_TEST("Write read-only registers")
 
         `MSG("Write 0 and check we read back. Both ops must receive error=0");
 

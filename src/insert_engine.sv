@@ -30,6 +30,7 @@ module insert_engine
         input  wire                        aclk,
         input  wire                        aresetn,
         output reg                         tree_ready,
+        input  wire                        tree_emptied,
         input  wire                        engine_ready,
         output wire [      `FSM_WIDTH-1:0] fsm_state,
         // Command interface
@@ -237,6 +238,9 @@ module insert_engine
                     cpl_status <= 1'b0;
                     internal_insert <= 1'b0;
 
+                    if (tree_emptied) begin
+                        tree_ready <= 1'b0;
+                    end
                     // INSERT_TOKEN from delete engine
                     if (insert_valid && insert_cmd == `INSERT_TOKEN) begin
                         internal_insert <= 1'b1;

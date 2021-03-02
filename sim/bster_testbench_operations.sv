@@ -256,9 +256,8 @@ module bster_testbench();
     endtask
 
     task teardown(msg="");
-        #20;
     begin
-        /// teardown() runs when a test ends
+        #20;
     end
     endtask
 
@@ -406,7 +405,7 @@ module bster_testbench();
 
     `UNIT_TEST_END
 
-    `UNIT_TEST("Try to delete tokens in tree")
+    `UNIT_TEST("Try to delete tokens in an empty tree")
 
         for (int i = 1; i <= 8; i=i+1) begin
             command(`DELETE_TOKEN, i, 0);
@@ -630,6 +629,23 @@ module bster_testbench();
         completion(cpl);
         `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
                 "Don't expect an error while this child must be available");
+    `UNIT_TEST_END
+
+    `UNIT_TEST("Create a tree then delete the root node immediately")
+
+        // Create a tree, add root and children and check children
+        // are still here
+        command(`INSERT_TOKEN, 10, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
+        // Delete the root node
+        command(`DELETE_TOKEN, 10, 0);
+        completion(cpl);
+        `ASSERT(cpl[AXI4S_WIDTH-1] == 1'b0,
+                "don't expect an error status");
+
     `UNIT_TEST_END
 
     `TEST_SUITE_END

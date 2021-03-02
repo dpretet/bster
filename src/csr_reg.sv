@@ -17,7 +17,9 @@ module csr_reg
         // Register address
         parameter [  CSR_ADDR_WIDTH-1:0] ADDRESS = 0,
         // RW = 1, RO = 0
-        parameter [CSR_DATA_WIDTH/8-1:0] MODE = 4'b0000
+        parameter [CSR_DATA_WIDTH/8-1:0] MODE = 4'b0000,
+        // Initial value of the register
+        parameter INIT = {CSR_DATA_WIDTH{1'b0}}
     )(
         input  wire                        pclk,
         input  wire                        presetn,
@@ -38,7 +40,7 @@ module csr_reg
     always_ff @ (posedge pclk or negedge presetn) begin
 
         if (presetn == 1'b0) begin
-            reg_o <= {CSR_DATA_WIDTH{1'b0}};
+            reg_o <= INIT;
             prdata <= {CSR_DATA_WIDTH{1'b0}};
             pready <= 1'b0;
             pslverr <= 1'b0;

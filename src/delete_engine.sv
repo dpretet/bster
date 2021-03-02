@@ -62,6 +62,7 @@ module delete_engine
         input  wire                        insert_cpl_status,
         // Tree manager access
         output wire                        tree_mgt_free_valid,
+        output reg                         tree_mgt_free_is_root,
         input  wire                        tree_mgt_free_ready,
         output reg  [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr,
         // Memory driver
@@ -106,6 +107,7 @@ module delete_engine
 
     // To store the read node content
     logic [ PAYLOAD_WIDTH-1:0] rdnode_payload;
+    logic                      rdnode_is_root;
     logic                      rdnode_has_right_child;
     logic                      rdnode_has_left_child;
     logic [RAM_ADDR_WIDTH-1:0] rdnode_right_child_addr;
@@ -147,8 +149,9 @@ module delete_engine
         if (~aresetn) begin
             rddata <= {RAM_DATA_WIDTH{1'b0}};
         end else begin
-            if (mem_rd_valid && mem_rd_ready)
+            if (mem_rd_valid && mem_rd_ready) begin
                 rddata <= mem_rd_data;
+            end
         end
     end
 
@@ -162,6 +165,7 @@ module delete_engine
             rdnode_info
            } = rddata;
 
+    assign rdnode_is_root = rdnode_info[2];
     assign rdnode_has_left_child = rdnode_info[1];
     assign rdnode_has_right_child = rdnode_info[0];
 
@@ -198,6 +202,7 @@ module delete_engine
             insert_cmd <= 8'b0;
             insert_node <= {RAM_DATA_WIDTH{1'b0}};
             insert_valid <= 1'b0;
+            tree_mgt_free_is_root <= 1'b0;
         end else begin
 
             case (fsm)
@@ -234,8 +239,9 @@ module delete_engine
                 SEARCH_TOKEN: begin
 
                     // Initiate a search and wait for its accepted
-                    if (search_ready)
+                    if (search_ready) begin
                         search_valid <= 1'b0;
+                    end
 
                     // Once found, ech if cpl is ok or not
                     if (search_cpl_valid) begin
@@ -269,11 +275,20 @@ module delete_engine
                     // If node is a leaf, just free the address and
                     // update the parent information
                     if (rdnode_info[1:0] == 2'b0) begin
-                        addr <= rdnode_parent_addr;
-                        tree_mgt_free_addr <= addr;
-                        nb_child <= 2'b0;
-                        fsm <= RD_RAM;
-                        fsm_stack <= UPDATE_PARENT;
+                        // Just free the node if is a leaf + the root
+                        if (rdnode_is_root) begin
+                            tree_mgt_free_addr <= addr;
+                            tree_mgt_free_is_root <= 1'b1;
+                            fsm <= FREE_ADDR;
+                        // Else reorder the child(ren)
+                        end else begin
+                            tree_mgt_free_is_root <= 1'b0;
+                            addr <= rdnode_parent_addr;
+                            tree_mgt_free_addr <= addr;
+                            nb_child <= 2'b0;
+                            fsm <= RD_RAM;
+                            fsm_stack <= UPDATE_PARENT;
+                        end
                     end
                     // If only owns a single child, append this child node on
                     // parent and free the token address
@@ -408,29 +423,33 @@ module delete_engine
                 // Deliver completion of a search or delete request,
                 // handled by tree space manager
                 REQ_COMPLETION : begin
-                    if (cpl_ready)
+                    if (cpl_ready) begin
                         fsm <= IDLE;
+                    end
                 end
 
                 // Write state to handle node storage
                 // Once written, move to the state defined in the stack
                 // by the operation which specified it
                 WR_RAM: begin
-                    if (mem_ready)
+                    if (mem_ready) begin
                         fsm <= fsm_stack;
+                    end
                 end
 
                 // Read stage handling node read
                 RD_RAM: begin
-                    if (mem_ready)
+                    if (mem_ready) begin
                         fsm <= WAIT_RAM_CPL;
+                    end
                 end
 
                 // Once read, move to the state defined in the stack
                 // by the operation which specified it
                 WAIT_RAM_CPL: begin
-                    if (mem_rd_valid)
+                    if (mem_rd_valid) begin
                         fsm <= fsm_stack;
+                    end
                 end
 
             endcase

@@ -10,6 +10,8 @@
 module csr
 
     #(
+        // External RAM address bus width
+        parameter RAM_ADDR_WIDTH = 16,
         // Addr Width in bits for Control/Status Register interface
         parameter CSR_ADDR_WIDTH = 8,
         // Data Width in bits for Control/Status Register interface
@@ -27,7 +29,8 @@ module csr
         output reg  [  CSR_DATA_WIDTH-1:0] prdata,
         output reg                         pslverr,
         input  wire [      `CSR_SLV_W-1:0] csr_slv,
-        output wire [      `CSR_MST_W-1:0] csr_mst
+        output wire [      `CSR_MST_W-1:0] csr_mst,
+        output reg                         swrst
     );
 
     /////////////////////////////////////////////////
@@ -71,6 +74,16 @@ module csr
     logic                        pslverr_st;
 
     logic                        clear_ctrl;
+
+    typedef enum logic[1:0] {
+        RST_IDLE = 2'b0,
+        RST_APPLIED = 2'b1,
+        RST_RELEASED = 2'b10
+    } reset_control;
+
+    reset_control rstfsm;
+    logic [7:0] rst_cnt;
+    localparam rst_length = 100;
 
     /////////////////////////////////////////////////
     // Mailbox register
@@ -164,7 +177,8 @@ module csr
     .CSR_ADDR_WIDTH (CSR_ADDR_WIDTH),
     .CSR_DATA_WIDTH (CSR_DATA_WIDTH),
     .ADDRESS        (`ADDR_RAM_MAX_LSB),
-    .MODE           (4'b1111)
+    .MODE           (4'b1111),
+    .INIT           ({RAM_ADDR_WIDTH{1'b1}})
     )
     max_addr_lsb_reg
     (
@@ -212,8 +226,6 @@ module csr
     /////////////////////////////////////////////////
     // Control and status register
     /////////////////////////////////////////////////
-
-    assign clear_ctrl = 1'b0;
 
     csr_reg
     #(
@@ -290,11 +302,13 @@ module csr
     .reg_o   (opcodes)
     );
 
+    assign csr_mst = {max_msb,max_lsb,base_msb,base_lsb};
+
     //////////////////////////////////////////////////////////////
     // Switch between the regsiter target the output of the module
     //////////////////////////////////////////////////////////////
 
-    always @ * begin
+    always @ (*) begin
         if (penable) begin
             if (paddr == `ADDR_MAILBOX) begin
                 prdata = prdata_mb;
@@ -345,7 +359,41 @@ module csr
     // Shared bus routed to the core
     /////////////////////////////////////////////////
 
-    assign csr_mst = {`CSR_MST_W{1'b0}};
+    always @(posedge pclk or negedge presetn) begin
+        if (presetn == 1'b0) begin
+            rst_cnt <= 8'b0;
+            clear_ctrl <= 1'b0;
+            swrst <= 1'b0;
+            rstfsm <= RST_IDLE;
+        end else begin
+            case (rstfsm)
+                default: begin
+
+                    swrst <= 1'b0;
+                    rst_cnt <= 8'b0;
+                    clear_ctrl <= 1'b0;
+                    // Wait for the host asserts a reset request
+                    if (control[0]) begin
+                        rstfsm <= RST_APPLIED;
+                    end
+                end
+                // Apply the reset as long the counter didn't finished
+                RST_APPLIED : begin
+                    swrst <= 1'b1;
+                    rst_cnt <= rst_cnt + 1'b1;
+                    if (rst_cnt == rst_length) begin
+                        rstfsm <= RST_RELEASED;
+                    end
+                end
+                // Stop sw reset and clear the restart register
+                RST_RELEASED: begin
+                    swrst <= 1'b0;
+                    clear_ctrl <= 1'b1;
+                    rstfsm <= RST_IDLE;
+                end
+            endcase
+        end
+    end
 
 endmodule
 

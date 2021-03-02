@@ -1,52 +1,57 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Fri Dec 18 11:59:28 2020
+[*] Sun Feb 28 09:45:10 2021
 [*]
 [dumpfile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.vcd"
-[dumpfile_mtime] "Fri Dec 18 10:49:44 2020"
-[dumpfile_size] 164854
+[dumpfile_mtime] "Sun Feb 28 09:39:26 2021"
+[dumpfile_size] 1047782
 [savefile] "/Users/damien/workspace/hdl/bster/sim/bster_testbench.gtkw"
-[timestart] 385900
-[size] 1440 801
-[pos] -360 -64
-*-15.102551 557000 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 4001200
+[size] 1761 1022
+[pos] -1 -1
+*-15.351538 4105000 325000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] bster_testbench.
 [treeopen] bster_testbench.dut.
 [treeopen] bster_testbench.dut.bst_engine_inst.
 [sst_width] 243
-[signals_width] 511
+[signals_width] 454
 [sst_expanded] 1
-[sst_vpaned_height] 516
+[sst_vpaned_height] 515
 @c00200
 -interface
 @28
 bster_testbench.dut.intf_inst.aclk
 bster_testbench.dut.intf_inst.aresetn
-bster_testbench.dut.intf_inst.req_valid
-bster_testbench.dut.intf_inst.req_ready
 @22
-bster_testbench.dut.intf_inst.req_cmd[7:0]
-bster_testbench.dut.intf_inst.req_token[7:0]
-bster_testbench.dut.intf_inst.req_data[31:0]
-@200
--
+bster_testbench.dut.intf_inst.cmd_tdata[127:0]
 @28
-bster_testbench.dut.intf_inst.cpl_valid
-bster_testbench.dut.intf_inst.cpl_ready
+bster_testbench.dut.intf_inst.cmd_tready
+bster_testbench.dut.intf_inst.cmd_tvalid
 @22
 bster_testbench.dut.intf_inst.cpl_data[31:0]
 @28
+bster_testbench.dut.intf_inst.cpl_ready
 bster_testbench.dut.intf_inst.cpl_status
-@200
--
-@28
-bster_testbench.dut.intf_inst.cpl_tvalid
-bster_testbench.dut.intf_inst.cpl_tready
 @22
 bster_testbench.dut.intf_inst.cpl_tdata[127:0]
+@28
+bster_testbench.dut.intf_inst.cpl_tready
+bster_testbench.dut.intf_inst.cpl_tvalid
+bster_testbench.dut.intf_inst.cpl_valid
+bster_testbench.dut.intf_inst.is_valid_req
+@22
+bster_testbench.dut.intf_inst.req_cmd[7:0]
+bster_testbench.dut.intf_inst.req_data[31:0]
+@28
+bster_testbench.dut.intf_inst.req_ready
+@22
+bster_testbench.dut.intf_inst.req_token[7:0]
+@28
+bster_testbench.dut.intf_inst.req_valid
+bster_testbench.dut.intf_inst.tree_ready
 @1401200
 -interface
-@800200
+@c00200
 -bst engine
 @28
 bster_testbench.dut.bst_engine_inst.aclk
@@ -89,7 +94,7 @@ bster_testbench.dut.bst_engine_inst.mem_rd_data[127:0]
 @28
 bster_testbench.dut.bst_engine_inst.mem_rd_valid
 bster_testbench.dut.bst_engine_inst.mem_rd_ready
-@1000200
+@1401200
 -bst engine
 @c00200
 -insert_engine
@@ -171,8 +176,6 @@ bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_req_valid
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_req_ready
 @22
 bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_req_addr[15:0]
-@28
-bster_testbench.dut.bst_engine_inst.insert_engine_inst.tree_mgt_full
 @1401200
 -insert_engine
 @c00200
@@ -266,9 +269,8 @@ bster_testbench.dut.bst_engine_inst.delete_engine_inst.fsm[4:0]
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.fsm_stack[4:0]
 @200
 -
-@29
-bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_valid
 @28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_valid
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_ready
 @22
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.search_cmd[7:0]
@@ -293,6 +295,16 @@ bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_ready
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.insert_valid
 @200
 -
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.tree_mgt_free_valid
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.tree_mgt_free_ready
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.tree_mgt_free_is_root
+@23
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.tree_mgt_free_addr[15:0]
+@28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.tree_ready
+@200
+-
 @c00022
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
 @28
@@ -310,6 +322,7 @@ bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_info[7:0]
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_token[7:0]
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_payload[31:0]
 @28
+bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_is_root
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.is_left_child
 @22
 bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_parent_addr[15:0]
@@ -317,12 +330,11 @@ bster_testbench.dut.bst_engine_inst.delete_engine_inst.rdnode_parent_addr[15:0]
 -
 @1000200
 -delete engine
-@c00200
+@800200
 -tree space manager
 @28
 bster_testbench.dut.tree_space_manager_inst.aclk
 bster_testbench.dut.tree_space_manager_inst.aresetn
-bster_testbench.dut.tree_space_manager_inst.tree_mgt_full
 bster_testbench.dut.tree_space_manager_inst.tree_mgt_req_valid
 bster_testbench.dut.tree_space_manager_inst.tree_mgt_req_ready
 @22
@@ -332,7 +344,7 @@ bster_testbench.dut.tree_space_manager_inst.tree_mgt_free_valid
 bster_testbench.dut.tree_space_manager_inst.tree_mgt_free_ready
 @22
 bster_testbench.dut.tree_space_manager_inst.tree_mgt_free_addr[15:0]
-@1401200
+@1000200
 -tree space manager
 @c00200
 -Memory Driver

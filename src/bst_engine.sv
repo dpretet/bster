@@ -29,6 +29,7 @@ module bst_engine
     )(
         input  wire                        aclk,
         input  wire                        aresetn,
+        output wire                        tree_ready,
         // Command interface
         input  wire                        req_valid,
         output wire                        req_ready,
@@ -45,6 +46,7 @@ module bst_engine
         input  wire                        tree_mgt_req_ready,
         input  wire [  RAM_ADDR_WIDTH-1:0] tree_mgt_req_addr,
         output wire                        tree_mgt_free_valid,
+        output wire                        tree_mgt_free_is_root,
         input  wire                        tree_mgt_free_ready,
         output wire [  RAM_ADDR_WIDTH-1:0] tree_mgt_free_addr,
         // Memory driver
@@ -57,7 +59,7 @@ module bst_engine
         input  wire                        mem_rd_valid,
         output wire                        mem_rd_ready,
         input  wire [  RAM_DATA_WIDTH-1:0] mem_rd_data,
-        output wire [       `OPCODE_W-1:0] csr_mst
+        output wire [           `BE_W-1:0] csr_mst
     );
 
 
@@ -66,7 +68,6 @@ module bst_engine
     engine_states fsm_delete;
 
 
-    logic                      tree_ready;
     logic                      engine_ready;
 
     logic                      req_ready_insert;
@@ -119,6 +120,10 @@ module bst_engine
     logic [RAM_ADDR_WIDTH-1:0] insert_addr;
     logic                      insert_cpl_valid;
     logic                      insert_cpl_status;
+    logic                      tree_emptied;
+
+    assign tree_emptied = tree_mgt_free_valid && tree_mgt_free_ready &&
+                          tree_mgt_free_is_root;
 
     // -------------------------------------------------------------------------
     // AXI4-stream interface issuing the commands and returning the completion
@@ -134,7 +139,7 @@ module bst_engine
 
     assign cpl_data = (fsm_insert == REQ_COMPLETION) ? cpl_data_insert :
                       (fsm_search == REQ_COMPLETION) ? cpl_data_search :
-                      (fsm_delete == REQ_COMPLETION) ? cpl_data_delete : 1'b0;
+                      (fsm_delete == REQ_COMPLETION) ? cpl_data_delete : 'b0;
 
     assign cpl_status = (fsm_insert == REQ_COMPLETION) ? cpl_status_insert :
                         (fsm_search == REQ_COMPLETION) ? cpl_status_search :
@@ -176,9 +181,10 @@ module bst_engine
                            fsm_delete == WAIT_RAM_CPL
                           );
 
-    assign csr_mst = {{8'b0,{{(8-`FSM_WIDTH){1'b0}},fsm_search},
-                            {{(8-`FSM_WIDTH){1'b0}},fsm_delete},
-                            {{(8-`FSM_WIDTH){1'b0}},fsm_insert}}};
+    assign csr_mst = {{tree_ready,
+                      {{(8-`FSM_WIDTH){1'b0}},fsm_search},
+                      {{(8-`FSM_WIDTH){1'b0}},fsm_delete},
+                      {{(8-`FSM_WIDTH){1'b0}},fsm_insert}}};
 
     insert_engine
     #(
@@ -194,6 +200,7 @@ module bst_engine
     .aclk                (aclk               ),
     .aresetn             (aresetn            ),
     .tree_ready          (tree_ready         ),
+    .tree_emptied        (tree_emptied       ),
     .engine_ready        (engine_ready       ),
     .fsm_state           (fsm_insert         ),
     .req_valid           (req_valid          ),
@@ -282,48 +289,50 @@ module bst_engine
     )
     delete_engine_inst
     (
-    .aclk                (aclk               ),
-    .aresetn             (aresetn            ),
-    .tree_ready          (tree_ready         ),
-    .engine_ready        (engine_ready       ),
-    .fsm_state           (fsm_delete         ),
-    .req_valid           (req_valid          ),
-    .req_ready           (req_ready_delete   ),
-    .req_cmd             (req_cmd            ),
-    .req_token           (req_token          ),
-    .req_data            (req_data           ),
-    .cpl_valid           (cpl_valid_delete   ),
-    .cpl_ready           (cpl_ready          ),
-    .cpl_data            (cpl_data_delete    ),
-    .cpl_status          (cpl_status_delete  ),
-    .search_valid        (search_valid       ),
-    .search_ready        (search_ready       ),
-    .search_token        (search_token       ),
-    .search_cmd          (search_cmd         ),
-    .search_cpl_addr     (search_cpl_addr    ),
-    .search_cpl_valid    (search_cpl_valid   ),
-    .search_cpl_status   (search_cpl_status  ),
-    .insert_valid        (insert_valid       ),
-    .insert_ready        (insert_ready       ),
-    .insert_node         (insert_node        ),
-    .insert_cmd          (insert_cmd         ),
-    .insert_addr         (insert_addr        ),
-    .insert_cpl_valid    (insert_cpl_valid   ),
-    .insert_cpl_status   (insert_cpl_status  ),
-    .tree_mgt_free_valid (tree_mgt_free_valid),
-    .tree_mgt_free_ready (tree_mgt_free_ready),
-    .tree_mgt_free_addr  (tree_mgt_free_addr ),
-    .mem_valid           (mem_valid_delete   ),
-    .mem_ready           (mem_ready          ),
-    .mem_rd              (mem_rd_delete      ),
-    .mem_wr              (mem_wr_delete      ),
-    .mem_addr            (mem_addr_delete    ),
-    .mem_wr_data         (mem_wr_data_delete ),
-    .mem_rd_valid        (mem_rd_valid       ),
-    .mem_rd_ready        (mem_rd_ready_delete),
-    .mem_rd_data         (mem_rd_data        )
+    .aclk                  (aclk                 ),
+    .aresetn               (aresetn              ),
+    .tree_ready            (tree_ready           ),
+    .engine_ready          (engine_ready         ),
+    .fsm_state             (fsm_delete           ),
+    .req_valid             (req_valid            ),
+    .req_ready             (req_ready_delete     ),
+    .req_cmd               (req_cmd              ),
+    .req_token             (req_token            ),
+    .req_data              (req_data             ),
+    .cpl_valid             (cpl_valid_delete     ),
+    .cpl_ready             (cpl_ready            ),
+    .cpl_data              (cpl_data_delete      ),
+    .cpl_status            (cpl_status_delete    ),
+    .search_valid          (search_valid         ),
+    .search_ready          (search_ready         ),
+    .search_token          (search_token         ),
+    .search_cmd            (search_cmd           ),
+    .search_cpl_addr       (search_cpl_addr      ),
+    .search_cpl_valid      (search_cpl_valid     ),
+    .search_cpl_status     (search_cpl_status    ),
+    .insert_valid          (insert_valid         ),
+    .insert_ready          (insert_ready         ),
+    .insert_node           (insert_node          ),
+    .insert_cmd            (insert_cmd           ),
+    .insert_addr           (insert_addr          ),
+    .insert_cpl_valid      (insert_cpl_valid     ),
+    .insert_cpl_status     (insert_cpl_status    ),
+    .tree_mgt_free_valid   (tree_mgt_free_valid  ),
+    .tree_mgt_free_ready   (tree_mgt_free_ready  ),
+    .tree_mgt_free_is_root (tree_mgt_free_is_root),
+    .tree_mgt_free_addr    (tree_mgt_free_addr   ),
+    .mem_valid             (mem_valid_delete     ),
+    .mem_ready             (mem_ready            ),
+    .mem_rd                (mem_rd_delete        ),
+    .mem_wr                (mem_wr_delete        ),
+    .mem_addr              (mem_addr_delete      ),
+    .mem_wr_data           (mem_wr_data_delete   ),
+    .mem_rd_valid          (mem_rd_valid         ),
+    .mem_rd_ready          (mem_rd_ready_delete  ),
+    .mem_rd_data           (mem_rd_data          )
     );
 
+    // synthesis translate_off
     `ifdef BSTER_LOGGER
 
         engine_states fsm_insert_prev;
@@ -427,6 +436,7 @@ module bst_engine
         end
 
     `endif
+    // synthesis translate_on
 
 endmodule
 
