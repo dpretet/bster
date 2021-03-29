@@ -1,5 +1,5 @@
 [verilog]
-include_paths = ["src"]
+include_paths = ["src", "rtl"]
 
 [option]
 linter = true
