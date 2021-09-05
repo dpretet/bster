@@ -10,7 +10,7 @@
 
 ## v1.0
 
-+ AXI4-lite interface deployment
++ APB interface deployment
 - All commands marked `TBD` will not be implemented.
 - All node's field marked `optional` will not be supported.
 - No data block payload will be available in token.

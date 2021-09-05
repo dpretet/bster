@@ -32,7 +32,7 @@ module bster
         // Clock and reset interface to source the core
         input  wire                        aclk,
         input  wire                        aresetn,
-        // AXI4-lite interface for Control/Status Registers
+        // APB interface for Control/Status Registers
         input  wire [  CSR_ADDR_WIDTH-1:0] paddr,
         input  wire [               2-1:0] pprot,
         input  wire                        penable,

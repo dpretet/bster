@@ -26,7 +26,7 @@ module bster_testbench();
     // Clock / reset signals
     reg                         aclk;
     reg                         aresetn;
-    // AXI4-lite CSR signals
+    // APB CSR signals
     reg  [  CSR_ADDR_WIDTH-1:0] paddr;
     reg  [               2-1:0] pprot;
     reg                         penable;
